@@ -130,13 +130,20 @@ Object.keys(fields).forEach(key => {
 // Excel読込
 let master = [];
 
-fetch("master.xlsx")
+fetch("./master.xlsx")
 .then(res => res.arrayBuffer())
 .then(data => {
   const wb = XLSX.read(data);
-  master = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-});
 
+  wb.SheetNames.forEach(name => {
+    const sheet = wb.Sheets[name];
+    const json = XLSX.utils.sheet_to_json(sheet);
+    master = master.concat(json);
+  });
+
+  console.log("読込件数:", master.length);
+});
+  
 // 必須
 const required = [
 "販売店の有無",
