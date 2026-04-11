@@ -129,28 +129,37 @@ async function search() {
 
   for (let sheetName of wb.SheetNames) {
 
-    let data = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
+    const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
       defval: ""
     });
 
-    let hit = data.find(row => {
+    // ★列名トリム（ここが超重要）
+    const data = raw.map(row => {
+      const clean = {};
+      Object.keys(row).forEach(k => {
+        clean[String(k).trim()] = row[k];
+      });
+      return clean;
+    });
+
+    const hit = data.find(row => {
 
       for (let key of selectedKeys) {
 
         const inputVal = document.getElementById(key).value;
-        const excelVal = String(row[key] || "").trim();
-
         const targetSheets = sheetMap[key];
 
-        // シート違いは除外
+        // シート対象外はスキップ
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
           return false;
         }
 
-        // 空白は無視（判定しない）
+        const excelVal = String(row[key] ?? "").trim();
+
+        // 列なし・空欄は評価しない
         if (!excelVal) continue;
 
-        // 一致しないなら即NG
+        // 不一致なら即NG
         if (excelVal !== inputVal) {
           return false;
         }
