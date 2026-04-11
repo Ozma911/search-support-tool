@@ -175,7 +175,7 @@ async function search() {
   });
 
 // =========================
-// 表示（最終完成版：未選択完全排除）
+// 表示（完全版：シート単位制御）
 // =========================
 let html = "";
 
@@ -183,50 +183,27 @@ if (results.length === 0) {
   html = "該当なし";
 } else {
 
-  // 項目 → 表示カテゴリ対応
-  const mapping = {
-    "介護記録ソフト連携": "介護記録",
-    "ナースコール連携": "ナースコール",
-    "インカム連携": "インカム",
-    "環境センサー連携": "環境センサー",
-    "トイレDIARY_個室か共用か": "トイレ",
-    "トイレDIARY_便器ふち幅": "トイレ",
-    "トイレDIARY_遠距離か近距離か": "トイレ",
-    "トイレDIARY_ケーブル長": "トイレ",
-    "トイレDIARY_介護記録ソフト連携": "トイレ",
-    "eye_接続方式": "eye",
-    "eye_マウント": "eye",
-    "eye_SDカード": "eye",
-    "おむつCOLOR_パッケージ": "おむつCOLOR",
-    "おむつCOLOR_セット": "おむつCOLOR",
-    "その他連携": "その他"
-  };
-
-  // 選択された項目だけ取得
-  let selected = Object.keys(fields).filter(k => {
-    return document.getElementById(k).value !== "";
+  // 選択値取得
+  const selectedValues = {};
+  Object.keys(fields).forEach(k => {
+    selectedValues[k] = document.getElementById(k).value;
   });
 
   results.forEach(r => {
+
+    // =========================
+    // シートごとの表示制御
+    // =========================
+    if (r.sheet.includes("介護記録") && !selectedValues["介護記録ソフト連携"]) return;
+    if (r.sheet.includes("ナースコール") && !selectedValues["ナースコール連携"]) return;
+    if (r.sheet.includes("インカム") && !selectedValues["インカム連携"]) return;
 
     html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
     html += `<b>シート：</b>${r.sheet}<br><br>`;
 
     Object.keys(r.data).forEach(k => {
 
-      // 検索名のみ対象
       if (!k.includes("検索名") || !r.data[k]) return;
-
-      let show = false;
-
-      // 選択された項目に対応するものだけ表示
-      selected.forEach(sel => {
-        if (mapping[sel] && k.includes(mapping[sel])) {
-          show = true;
-        }
-      });
-
-      if (!show) return;
 
       let no = k.replace("検索名","製品番号");
 
