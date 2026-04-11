@@ -129,7 +129,9 @@ async function search() {
 
   for (let sheetName of wb.SheetNames) {
 
-    let data = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
+    let data = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
+      defval: ""   // ★空欄対策
+    });
 
     let hit = data.find(row => {
 
@@ -137,32 +139,29 @@ async function search() {
 
       for (let key of selectedKeys) {
 
-        const inputVal = document.getElementById(key).value;
+        const inputVal = String(document.getElementById(key).value || "").trim();
         if (!inputVal) continue;
 
         const targetSheets = sheetMap[key];
 
-        // シート対象外は無視（落とさない）
+        // シート対象外は評価しない
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
           continue;
         }
 
-        const excelVal = row[key];
+        const excelVal = String(row[key] || "").trim();
 
-        // 列なし or 空白 → 評価しない（超重要）
-        if (excelVal === undefined || excelVal === null || excelVal === "") {
-          continue;
+        // 列なし・空欄は無視（落とさない）
+        if (excelVal === "") continue;
+
+        // 完全一致のみ採用（ここが安定ポイント）
+        if (excelVal !== inputVal) {
+          return false;
         }
 
-        // 一致のみカウント
-        if (String(excelVal).trim().includes(inputVal.trim())) {
-          matched++;
-        } else {
-          return false; // 不一致なら即NG
-        }
+        matched++;
       }
 
-      // 1つでも条件が効いていればOK
       return matched > 0;
     });
 
@@ -171,6 +170,9 @@ async function search() {
     }
   }
 
+  // =========================
+  // 表示（未選択は出さない）
+  // =========================
   let html = "";
 
   if (results.length === 0) {
@@ -187,7 +189,7 @@ async function search() {
         if (!k.includes("検索名")) return;
         if (!r.data[k]) return;
 
-        let no = k.replace("検索名","製品番号");
+        let no = k.replace("検索名", "製品番号");
 
         html += `<b>${k}</b><br>${r.data[k]}<br>`;
         html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
