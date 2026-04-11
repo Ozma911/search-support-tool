@@ -133,6 +133,8 @@ async function search() {
 
     let hit = data.find(row => {
 
+      let score = 0;
+
       for (let key of selectedKeys) {
 
         const inputVal = document.getElementById(key).value;
@@ -140,25 +142,23 @@ async function search() {
 
         const targetSheets = sheetMap[key];
 
-        // シート対象外ならスキップ（評価しないだけ）
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
           return false;
         }
 
         const excelVal = row[key];
 
-        // ★重要：列が無い場合は「無視」（ここが修正点）
-        if (excelVal === undefined || excelVal === null || excelVal === "") {
-          continue;
-        }
+        // 列が無い → スキップ（重要）
+        if (!excelVal) continue;
 
-        // 一致しないならNG
-        if (String(excelVal).trim() !== inputVal.trim()) {
-          return false;
+        // 完全一致 or 部分一致で加点
+        if (String(excelVal).includes(inputVal)) {
+          score++;
         }
       }
 
-      return true;
+      // ★1つでもヒットしていればOK
+      return score > 0;
     });
 
     if (hit) {
@@ -181,7 +181,7 @@ async function search() {
         if (!k.includes("検索名")) return;
         if (!r.data[k]) return;
 
-        let no = k.replace("検索名", "製品番号");
+        let no = k.replace("検索名","製品番号");
 
         html += `<b>${k}</b><br>${r.data[k]}<br>`;
         html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
