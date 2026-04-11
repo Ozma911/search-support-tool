@@ -129,8 +129,8 @@ async function search() {
     "クラウド構成orハイブリッド構成": ["ハイブリッド構成サーバー特定マスタ"],
     "総床数カテゴリ": ["ハイブリッド構成サーバー特定マスタ","【個室】トイレDIARYマスタ","【共用】トイレDIARYマスタ"],
     "最大Viewer同時接続数": ["ハイブリッド構成サーバー特定マスタ"],
-    "眠りSCAN eyeの有無": ["ハイブリッド構成サーバー特定マスタ"],
 
+    "眠りSCAN eyeの有無": ["ハイブリッド構成サーバー特定マスタ"],
     "眠りSCAN導入台数": ["クラウド構成マスタ"],
     "眠りSCAN購入形態": ["クラウド構成マスタ"],
 
@@ -139,19 +139,10 @@ async function search() {
     "インカム連携": ["インカムマスタ"],
     "環境センサー連携": ["環境センサマスタ"],
 
-    "トイレDIARY_個室か共用か": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
-    "トイレDIARY_便器ふち幅": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
-    "トイレDIARY_遠距離か近距離か": ["【共用】トイレDIARYマスタ"],
-    "トイレDIARY_ケーブル長": ["【共用】トイレDIARYマスタ"],
-    "トイレDIARY_介護記録ソフト連携": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
+    "トイレDIARY関連": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
 
-    "eye_接続方式": ["眠りCONNECT eyeマスタ"],
-    "eye_マウント": ["眠りCONNECT eyeマスタ"],
-    "eye_SDカード": ["眠りCONNECT eyeマスタ"],
-
-    "おむつCOLOR_パッケージ": ["おむつCOLORマスタ"],
-    "おむつCOLOR_セット": ["おむつCOLORマスタ"],
-
+    "eye関連": ["眠りCONNECT eyeマスタ"],
+    "おむつCOLOR関連": ["おむつCOLORマスタ"],
     "その他連携": ["その他連携マスタ"]
   };
 
@@ -164,31 +155,26 @@ async function search() {
     const sheet = wb.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-    data.forEach(row => {
+    // ★★★ ここが重要：最初にシートで完全フィルタ
+    selected.forEach(key => {
 
-      let ok = true;
+      const targets = sheetMap[key];
+      if (targets !== "ALL" && !targets.includes(sheetName)) {
+        return; // このシートは対象外
+      }
 
-      for (let key of selected) {
+      const inputVal = document.getElementById(key).value;
 
-        const inputVal = document.getElementById(key).value;
-        const targets = sheetMap[key];
-
-        // シート対象外ならスキップ（重要）
-        if (targets !== "ALL" && !targets.includes(sheetName)) continue;
+      data.forEach(row => {
 
         const excelVal = row[key];
+        if (!excelVal) return;
 
-        // 列が無いなら条件スキップ
-        if (!excelVal) continue;
+        if (String(excelVal).includes(inputVal)) {
+          results.push({ sheet: sheetName, data: row });
+        }
 
-        ok = ok && String(excelVal).includes(inputVal);
-
-        if (!ok) break;
-      }
-
-      if (ok) {
-        results.push({ sheet: sheetName, data: row });
-      }
+      });
 
     });
 
@@ -213,7 +199,6 @@ async function search() {
         if (!k.includes("検索名")) return;
 
         const val = r.data[k];
-
         if (!val || val === "未選択") return;
 
         const no = k.replace("検索名","製品番号");
