@@ -92,9 +92,14 @@ document.addEventListener("DOMContentLoaded", createForm);
 // =========================
 async function search() {
 
+  console.clear();
+  console.log("===== SEARCH START =====");
+
   const res = await fetch("master.xlsx?v=" + Date.now());
   const buf = await res.arrayBuffer();
   const wb = XLSX.read(buf);
+
+  console.log("SHEETS:", wb.SheetNames);
 
   let results = [];
 
@@ -125,15 +130,29 @@ async function search() {
   };
 
   const selectedKeys = Object.keys(fields)
-    .filter(k => document.getElementById(k).value !== "");
+    .filter(k => {
+      const v = document.getElementById(k).value;
+      return v !== "";
+    });
+
+  console.log("SELECTED:", selectedKeys);
 
   for (let sheetName of wb.SheetNames) {
+
+    console.log("---- SHEET CHECK:", sheetName);
 
     const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
       defval: ""
     });
 
-    // ★列名トリム（ここが超重要）
+    if (!raw.length) {
+      console.log("EMPTY SHEET:", sheetName);
+      continue;
+    }
+
+    // ★列確認
+    console.log("COLUMNS:", Object.keys(raw[0]));
+
     const data = raw.map(row => {
       const clean = {};
       Object.keys(row).forEach(k => {
@@ -142,41 +161,48 @@ async function search() {
       return clean;
     });
 
-    const hit = data.find(row => {
+    const hit = data.find((row, idx) => {
+
+      console.log("  row:", idx);
 
       for (let key of selectedKeys) {
 
         const inputVal = document.getElementById(key).value;
         const targetSheets = sheetMap[key];
 
-        // シート対象外はスキップ
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
+          console.log("   skip sheet mismatch:", key);
           return false;
         }
 
         const excelVal = String(row[key] ?? "").trim();
 
-        // 列なし・空欄は評価しない
+        console.log(`   ${key}: input=${inputVal} / excel=${excelVal}`);
+
         if (!excelVal) continue;
 
-        // 不一致なら即NG
         if (excelVal !== inputVal) {
+          console.log("   ❌ mismatch:", key);
           return false;
         }
       }
 
+      console.log("   ✅ HIT ROW");
       return true;
     });
 
     if (hit) {
+      console.log(">>> HIT SHEET:", sheetName);
       results.push({ sheet: sheetName, data: hit });
     }
   }
 
+  console.log("RESULTS:", results);
+
   let html = "";
 
   if (results.length === 0) {
-    html = "該当なし";
+    html = "該当なし（デバッグログ確認）";
   } else {
 
     results.forEach(r => {
