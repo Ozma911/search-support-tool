@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>検索サポートツール</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+body {
+  font-family: sans-serif;
+  padding: 15px;
+  max-width: 600px;
+  margin: auto;
+}
+
+h2 {
+  text-align: center;
+}
+
+.block {
+  margin-bottom: 12px;
+}
+
+.label {
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+
+select {
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+.notice {
+  color: red;
+  margin-top: 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  font-size: 13px;
+}
+
+th {
+  background: #eee;
+}
+</style>
+</head>
+<body>
+
+<h2>検索サポートツール</h2>
+
+<div id="form"></div>
+
+<button onclick="calc()">検索</button>
+
+<div class="notice" id="notice"></div>
+<div id="result"></div>
+
+<script>
+
+// 項目定義
+const fields = {
+"販売店の有無": ["", "有", "無"],
+"クラウド構成orハイブリッド構成": ["", "クラウド構成", "ハイブリッド構成"],
+"総床数カテゴリ": ["", "18床以下", "19-120床", "121-200床", "201床以上"],
+"最大Viewer同時接続数": ["", "30台以下", "31-59台", "60台以上"],
+"契約期間": ["", "月額", "1年", "5年"],
+"眠りSCAN eyeの有無": ["", "有", "無"],
+"眠りSCAN導入台数": ["", "18台以下", "19台以上"],
+"眠りSCAN購入形態": ["", "購入", "レンタル"],
+"介護記録ソフト連携": ["", "CCJ（CAREKARTE）","NDソフト（ほのぼのNEXT）","ワイズマン（ワイズマンSP）","内田洋行（絆Core）","日立システムズ（福祉の森）","BOS（ブルーオーシャンノート）","EMシステムズ（すこやかサン）","MIC（寿）","富士通（HOPE LifeMark WINCARE）","東経システム（福祉見聞録）"],
+"ナースコール連携": ["", "アイホン(Vi-nurse)","ケアコム(CICCS-EX)","ナカヨ(NYC-Si)","平和テクノ(Yuiコール)","名電通(ナースエコール)","ジーコム","iSEED(パルモスマートコール)","ユニティー・ネットワーク(あんしんの絆)"],
+"インカム連携": ["", "CCJ（ハナスト）","BONX（BONX）","サイエンスアーツ（buddycom）","TBeye（クリアトークカム）","VOYT（VOYT CONNECT）"],
+"環境センサー連携": ["", "環境センサー","環境センサー＋ドア開閉検知ユニット"],
+"トイレDIARY_個室か共用か": ["", "個室用","共用"],
+"トイレDIARY_便器ふち幅": ["", "30-40mm","41-50mm","51-60mm"],
+"トイレDIARY_遠距離か近距離か": ["", "遠距離","近距離"],
+"トイレDIARY_ケーブル長": ["", "2m","3.5m"],
+"トイレDIARY_介護記録ソフト連携": ["", "有","無"],
+"eye_接続方式": ["", "有線","無線"],
+"eye_マウント": ["", "固定","移動式"],
+"eye_SDカード": ["", "128GB","256GB"],
+"おむつCOLOR_パッケージ": ["", "単体使用","眠りSCAN4以外","眠りCONNECT連携"],
+"おむつCOLOR_セット": ["", "夜間セット","1年セット"],
+"その他連携": ["", "DFree","介護Plus"]
+};
+
+// UI生成
+const form = document.getElementById("form");
+
+Object.keys(fields).forEach(key => {
+  const block = document.createElement("div");
+  block.className = "block";
+
+  const label = document.createElement("div");
+  label.className = "label";
+  label.textContent = key;
+
+  const select = document.createElement("select");
+  select.id = key;
+
+  fields[key].forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v || "未選択";
+    select.appendChild(opt);
+  });
+
+  block.appendChild(label);
+  block.appendChild(select);
+  form.appendChild(block);
+});
+
+// Excel読込
+let master = [];
+
+fetch("master.xlsx")
+.then(res => res.arrayBuffer())
+.then(data => {
+  const wb = XLSX.read(data);
+  master = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+});
+
+// 必須
+const required = [
+"販売店の有無",
+"クラウド構成orハイブリッド構成",
+"総床数カテゴリ",
+"最大Viewer同時接続数",
+"契約期間"
+];
+
+// 実行
+function calc(){
+
+  const notice = document.getElementById("notice");
+  notice.innerHTML = "";
+
+  const cond = {};
+  Object.keys(fields).forEach(k => {
+    cond[k] = document.getElementById(k).value;
+  });
+
+  const missing = required.filter(k => !cond[k]);
+
+  if(missing.length){
+    notice.innerHTML = "不足項目： " + missing.join(" / ");
+    return;
+  }
+
+  const result = master.filter(row => {
+    return Object.keys(cond).every(k => !cond[k] || row[k] == cond[k]);
+  });
+
+  render(result);
+}
+
+// 表示
+function render(data){
+  const div = document.getElementById("result");
+  div.innerHTML = "";
+
+  if(data.length === 0){
+    div.innerHTML = "該当なし";
+    return;
+  }
+
+  let html = "<table><tr><th>項目</th><th>検索名</th><th>製品番号</th></tr>";
+
+  data.forEach(row => {
+    Object.keys(row).forEach(key => {
+      if(key.includes("_検索名") && row[key]){
+        const base = key.replace("_検索名","");
+        const code = row[base + "_製品番号"] || "";
+        html += `<tr><td>${base}</td><td>${row[key]}</td><td>${code}</td></tr>`;
+      }
+    });
+  });
+
+  html += "</table>";
+  div.innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>
