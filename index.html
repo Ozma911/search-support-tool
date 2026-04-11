@@ -122,9 +122,6 @@ async function search() {
 
   let results = [];
 
-  // =========================
-  // 項目 → 対象シート
-  // =========================
   const sheetMap = {
     "販売店の有無": "ALL",
     "契約期間": "ALL",
@@ -158,47 +155,47 @@ async function search() {
     "その他連携": ["その他連携マスタ"]
   };
 
-  // 選択されている項目
-  let selected = Object.keys(fields).filter(k => {
-    return document.getElementById(k).value !== "";
-  });
+  const selected = Object.keys(fields).filter(k =>
+    document.getElementById(k).value !== ""
+  );
 
-  wb.SheetNames.forEach(name => {
+  wb.SheetNames.forEach(sheetName => {
 
-    let data = XLSX.utils.sheet_to_json(wb.Sheets[name]);
+    const sheet = wb.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-    let filtered = data.filter(row => {
+    data.forEach(row => {
 
-      return selected.every(key => {
+      let ok = true;
 
-        let inputVal = document.getElementById(key).value;
-        let target = sheetMap[key];
+      for (let key of selected) {
 
-        // =========================
-        // このシートが対象じゃない → 無視（超重要）
-        // =========================
-        if (target !== "ALL") {
-          if (!target.includes(name)) return true;
-        }
+        const inputVal = document.getElementById(key).value;
+        const targets = sheetMap[key];
 
-        let excelVal = row[key];
+        // シート対象外ならスキップ（重要）
+        if (targets !== "ALL" && !targets.includes(sheetName)) continue;
 
-        if (excelVal === undefined) return true;
-        if (excelVal === "") return true;
+        const excelVal = row[key];
 
-        return String(excelVal).includes(inputVal);
-      });
+        // 列が無いなら条件スキップ
+        if (!excelVal) continue;
 
-    });
+        ok = ok && String(excelVal).includes(inputVal);
 
-    filtered.forEach(r => {
-      results.push({ sheet: name, data: r });
+        if (!ok) break;
+      }
+
+      if (ok) {
+        results.push({ sheet: sheetName, data: row });
+      }
+
     });
 
   });
 
   // =========================
-  // 表示
+  // 表示（未選択完全排除）
   // =========================
   let html = "";
 
@@ -213,13 +210,16 @@ async function search() {
 
       Object.keys(r.data).forEach(k => {
 
-        if (k.includes("検索名") && r.data[k]) {
+        if (!k.includes("検索名")) return;
 
-          let no = k.replace("検索名","製品番号");
+        const val = r.data[k];
 
-          html += `<b>${k}</b><br>${r.data[k]}<br>`;
-          html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
-        }
+        if (!val || val === "未選択") return;
+
+        const no = k.replace("検索名","製品番号");
+
+        html += `<b>${k}</b><br>${val}<br>`;
+        html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
       });
 
       html += `</div>`;
