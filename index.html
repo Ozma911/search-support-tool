@@ -11910,28 +11910,48 @@ window.onload = createForm;
 // =========================
 function search() {
 
-  let results = [];
-  let debugLogs = [];
+  // =========================
+  // 必須チェック
+  // =========================
+  const required = ["販売店の有無", "契約期間"];
 
+  for (let r of required) {
+    if (!document.getElementById(r).value) {
+      alert(r + "は必須です");
+      return;
+    }
+  }
+
+  // =========================
+  // 未選択だけなら検索しない
+  // =========================
   let selectedKeys = Object.keys(fields)
     .filter(k => document.getElementById(k).value !== "");
+
+  if (selectedKeys.length === 0) {
+    document.getElementById("result").innerHTML = "";
+    return;
+  }
+
+  let results = [];
+  let debugLogs = [];
 
   for (let sheet in masterData) {
 
     let rows = masterData[sheet];
-
     let hit = null;
 
     for (let i = 0; i < rows.length; i++) {
 
       let row = rows[i];
-      let mismatch = [];
       let ok = true;
+      let mismatch = [];
 
       for (let key of selectedKeys) {
 
         let inputVal = document.getElementById(key).value;
 
+        // ★そのマスタに無い項目は無視
         if (!(key in row)) continue;
 
         let val = String(row[key]).trim();
@@ -11951,6 +11971,7 @@ function search() {
       }
     }
 
+    // ★各マスタ1件のみ
     if (hit) {
       results.push({ sheet, data: hit });
     }
@@ -11987,7 +12008,7 @@ function search() {
 
   document.getElementById("result").innerHTML = html;
 
-  // デバッグ表示（不要ならコメントアウト）
+  // デバッグ（不要なら消してOK）
   document.getElementById("debug").innerText =
     debugLogs.slice(0,20).join("\n----------------\n");
 }
