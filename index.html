@@ -72,7 +72,7 @@ function createForm() {
 createForm();
 
 // =========================
-// 総床数カテゴリ切替
+// 総床数切替
 // =========================
 document.addEventListener("change", function(e) {
   if (e.target.id === "クラウド構成orハイブリッド構成") {
@@ -95,7 +95,7 @@ document.addEventListener("change", function(e) {
 });
 
 // =========================
-// 正規化（超重要）
+// 正規化（ズレ吸収）
 // =========================
 function normalize(str) {
   if (!str) return "";
@@ -113,7 +113,7 @@ function normalize(str) {
 }
 
 // =========================
-// 検索
+// 検索（デバッグ付き）
 // =========================
 async function search() {
 
@@ -124,56 +124,58 @@ async function search() {
   const buf = await res.arrayBuffer();
   const wb = XLSX.read(buf);
 
-  let results = [];
+  let html = "";
 
   wb.SheetNames.forEach(name => {
 
     let data = XLSX.utils.sheet_to_json(wb.Sheets[name]);
 
-    let filtered = data.filter(row => {
-      return Object.keys(fields).every(key => {
+    data.forEach((row, index) => {
+
+      let ngList = [];
+
+      Object.keys(fields).forEach(key => {
 
         let val = document.getElementById(key).value;
-        if (!val) return true;
+        if (!val) return;
 
         let a = normalize(row[key]);
         let b = normalize(val);
 
-        return a.includes(b);
-      });
-    });
-
-    results.push(...filtered);
-  });
-
-  // =========================
-  // 表示
-  // =========================
-  let html = "";
-
-  if (results.length === 0) {
-    html = "<b>該当なし</b>";
-  } else {
-
-    results.forEach(row => {
-
-      html += "<div style='border:1px solid #ccc;padding:10px;margin-bottom:10px;'>";
-
-      Object.keys(row).forEach(k => {
-        if (k.includes("検索名") && row[k]) {
-
-          let no = k.replace("検索名","製品番号");
-
-          html += `<b>${k}：</b>${row[k]}<br>`;
-          html += `<b>${no}：</b>${row[no] || ""}<br><br>`;
+        if (!a.includes(b)) {
+          ngList.push(`${key} → 入力:${val} / Excel:${row[key]}`);
         }
       });
 
-      html += "</div>";
-    });
-  }
+      // 1つでも一致してる行を表示（原因確認用）
+      if (ngList.length < Object.keys(fields).length) {
 
-  document.getElementById("result").innerHTML = html;
+        html += "<div style='border:2px solid red;padding:10px;margin-bottom:10px;'>";
+
+        html += `<b>シート：</b>${name}<br>`;
+        html += `<b>行：</b>${index + 2}<br><br>`;
+
+        if (ngList.length > 0) {
+          html += "<b style='color:red'>不一致：</b><br>";
+          ngList.forEach(x => html += x + "<br>");
+          html += "<hr>";
+        }
+
+        Object.keys(row).forEach(k => {
+          if (k.includes("検索名") && row[k]) {
+            let no = k.replace("検索名","製品番号");
+            html += `<b>${row[k]}</b>（${row[no] || ""}）<br>`;
+          }
+        });
+
+        html += "</div>";
+      }
+
+    });
+
+  });
+
+  document.getElementById("result").innerHTML = html || "<b>完全一致ゼロ（全部ズレてる）</b>";
 }
 
 </script>
