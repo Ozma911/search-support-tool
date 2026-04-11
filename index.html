@@ -175,7 +175,7 @@ async function search() {
   });
 
 // =========================
-// 表示（完成版：未選択のみ排除＆確実表示）
+// 表示（最終安定版）
 // =========================
 let html = "";
 
@@ -183,10 +183,29 @@ if (results.length === 0) {
   html = "該当なし";
 } else {
 
-  // 選択されている項目だけ取得
+  // 選択されている項目
   let selected = Object.keys(fields).filter(k => {
     return document.getElementById(k).value !== "";
   });
+
+  // 表示カテゴリ対応（ここ重要）
+  const mapping = {
+    "介護記録ソフト連携": "介護記録",
+    "ナースコール連携": "ナースコール",
+    "インカム連携": "インカム",
+    "環境センサー連携": "環境センサー",
+    "トイレDIARY_個室か共用か": "トイレ",
+    "トイレDIARY_便器ふち幅": "トイレ",
+    "トイレDIARY_遠距離か近距離か": "トイレ",
+    "トイレDIARY_ケーブル長": "トイレ",
+    "トイレDIARY_介護記録ソフト連携": "トイレ",
+    "eye_接続方式": "eye",
+    "eye_マウント": "eye",
+    "eye_SDカード": "eye",
+    "おむつCOLOR_パッケージ": "おむつCOLOR",
+    "おむつCOLOR_セット": "おむつCOLOR",
+    "その他連携": "その他"
+  };
 
   results.forEach(r => {
 
@@ -194,19 +213,24 @@ if (results.length === 0) {
 
     Object.keys(r.data).forEach(k => {
 
-      // 検索名だけ対象
+      // 検索名のみ
       if (!k.includes("検索名")) return;
       if (!r.data[k]) return;
 
       let show = false;
 
-      // =========================
-      // ★選択項目とキー名の一致で判断（シンプル＆確実）
-      // =========================
       selected.forEach(sel => {
-        if (k.includes(sel.replace(/_.*/, ""))) {
-          show = true;
+
+        // mappingある場合
+        if (mapping[sel]) {
+          if (k.includes(mapping[sel])) show = true;
         }
+
+        // mapping無い場合（サーバーとか）
+        else {
+          if (k.includes(sel)) show = true;
+        }
+
       });
 
       if (!show) return;
@@ -217,7 +241,7 @@ if (results.length === 0) {
       block += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
     });
 
-    // 何も表示対象が無い行は出さない
+    // 表示対象ある場合のみ出す
     if (block !== "") {
       html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
       html += `<b>シート：</b>${r.sheet}<br><br>`;
@@ -227,7 +251,6 @@ if (results.length === 0) {
 
   });
 
-  // 最終的に何もなければ該当なし
   if (html === "") {
     html = "該当なし";
   }
