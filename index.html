@@ -175,7 +175,7 @@ async function search() {
   });
 
 // =========================
-// 表示（完全版：シート単位制御）
+// 表示（最終完成：サーバーは常に表示）
 // =========================
 let html = "";
 
@@ -183,7 +183,6 @@ if (results.length === 0) {
   html = "該当なし";
 } else {
 
-  // 選択値取得
   const selectedValues = {};
   Object.keys(fields).forEach(k => {
     selectedValues[k] = document.getElementById(k).value;
@@ -192,11 +191,26 @@ if (results.length === 0) {
   results.forEach(r => {
 
     // =========================
-    // シートごとの表示制御
+    // オプション系のみ制御
     // =========================
-    if (r.sheet.includes("介護記録") && !selectedValues["介護記録ソフト連携"]) return;
-    if (r.sheet.includes("ナースコール") && !selectedValues["ナースコール連携"]) return;
-    if (r.sheet.includes("インカム") && !selectedValues["インカム連携"]) return;
+    let isOptionSheet = false;
+
+    if (r.sheet.includes("介護記録")) {
+      isOptionSheet = true;
+      if (!selectedValues["介護記録ソフト連携"]) return;
+    }
+
+    if (r.sheet.includes("ナースコール")) {
+      isOptionSheet = true;
+      if (!selectedValues["ナースコール連携"]) return;
+    }
+
+    if (r.sheet.includes("インカム")) {
+      isOptionSheet = true;
+      if (!selectedValues["インカム連携"]) return;
+    }
+
+    // ★ここ重要：サーバー系は無条件表示（何もしない）
 
     html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
     html += `<b>シート：</b>${r.sheet}<br><br>`;
@@ -217,7 +231,6 @@ if (results.length === 0) {
 }
 
 document.getElementById("result").innerHTML = html;
-}
   
 </script>
 
