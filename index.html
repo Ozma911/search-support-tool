@@ -10,6 +10,7 @@ label { display: block; margin-top: 10px; font-weight: bold; }
 select { width: 100%; padding: 6px; }
 button { margin-top: 15px; padding: 10px; width: 100%; }
 #result { margin-top: 20px; }
+.debug { border:2px solid red; padding:10px; margin-bottom:10px; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -95,7 +96,7 @@ document.addEventListener("change", function(e) {
 });
 
 // =========================
-// 正規化（ズレ吸収）
+// 正規化
 // =========================
 function normalize(str) {
   if (!str) return "";
@@ -113,7 +114,7 @@ function normalize(str) {
 }
 
 // =========================
-// 検索（デバッグ付き）
+// 検索（デバッグ強制表示）
 // =========================
 async function search() {
 
@@ -147,35 +148,35 @@ async function search() {
         }
       });
 
-      // 1つでも一致してる行を表示（原因確認用）
-      if (ngList.length < Object.keys(fields).length) {
+      // ★ここ重要：全行表示
+      html += "<div class='debug'>";
 
-        html += "<div style='border:2px solid red;padding:10px;margin-bottom:10px;'>";
+      html += `<b>シート：</b>${name}<br>`;
+      html += `<b>行：</b>${index + 2}<br><br>`;
 
-        html += `<b>シート：</b>${name}<br>`;
-        html += `<b>行：</b>${index + 2}<br><br>`;
-
-        if (ngList.length > 0) {
-          html += "<b style='color:red'>不一致：</b><br>";
-          ngList.forEach(x => html += x + "<br>");
-          html += "<hr>";
-        }
-
-        Object.keys(row).forEach(k => {
-          if (k.includes("検索名") && row[k]) {
-            let no = k.replace("検索名","製品番号");
-            html += `<b>${row[k]}</b>（${row[no] || ""}）<br>`;
-          }
-        });
-
-        html += "</div>";
+      if (ngList.length === 0) {
+        html += "<b style='color:green'>完全一致</b><br>";
+      } else {
+        html += "<b style='color:red'>不一致：</b><br>";
+        ngList.forEach(x => html += x + "<br>");
       }
+
+      html += "<hr>";
+
+      Object.keys(row).forEach(k => {
+        if (k.includes("検索名") && row[k]) {
+          let no = k.replace("検索名","製品番号");
+          html += `<b>${row[k]}</b>（${row[no] || ""}）<br>`;
+        }
+      });
+
+      html += "</div>";
 
     });
 
   });
 
-  document.getElementById("result").innerHTML = html || "<b>完全一致ゼロ（全部ズレてる）</b>";
+  document.getElementById("result").innerHTML = html || "<b>データなし</b>";
 }
 
 </script>
