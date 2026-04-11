@@ -92,14 +92,11 @@ document.addEventListener("DOMContentLoaded", createForm);
 // =========================
 async function search() {
 
-  console.clear();
-  console.log("===== SEARCH START =====");
+  alert("search動いた"); // ★必ず動作確認
 
   const res = await fetch("master.xlsx?v=" + Date.now());
   const buf = await res.arrayBuffer();
   const wb = XLSX.read(buf);
-
-  console.log("SHEETS:", wb.SheetNames);
 
   let results = [];
 
@@ -130,79 +127,58 @@ async function search() {
   };
 
   const selectedKeys = Object.keys(fields)
-    .filter(k => {
-      const v = document.getElementById(k).value;
-      return v !== "";
-    });
-
-  console.log("SELECTED:", selectedKeys);
+    .filter(k => document.getElementById(k).value !== "");
 
   for (let sheetName of wb.SheetNames) {
-
-    console.log("---- SHEET CHECK:", sheetName);
 
     const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
       defval: ""
     });
 
-    if (!raw.length) {
-      console.log("EMPTY SHEET:", sheetName);
-      continue;
-    }
-
-    // ★列確認
-    console.log("COLUMNS:", Object.keys(raw[0]));
-
+    // ★列名ズレ完全吸収
     const data = raw.map(row => {
-      const clean = {};
+      const obj = {};
       Object.keys(row).forEach(k => {
-        clean[String(k).trim()] = row[k];
+        obj[String(k).trim()] = String(row[k] ?? "").trim();
       });
-      return clean;
+      return obj;
     });
 
-    const hit = data.find((row, idx) => {
-
-      console.log("  row:", idx);
+    const hit = data.find(row => {
 
       for (let key of selectedKeys) {
 
         const inputVal = document.getElementById(key).value;
         const targetSheets = sheetMap[key];
 
+        // シート対象外は除外
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
-          console.log("   skip sheet mismatch:", key);
           return false;
         }
 
-        const excelVal = String(row[key] ?? "").trim();
+        const excelVal = row[key];
 
-        console.log(`   ${key}: input=${inputVal} / excel=${excelVal}`);
-
+        // 空欄は無視
         if (!excelVal) continue;
 
+        // 不一致はNG
         if (excelVal !== inputVal) {
-          console.log("   ❌ mismatch:", key);
           return false;
         }
       }
 
-      console.log("   ✅ HIT ROW");
       return true;
     });
 
     if (hit) {
-      console.log(">>> HIT SHEET:", sheetName);
       results.push({ sheet: sheetName, data: hit });
     }
   }
 
-  console.log("RESULTS:", results);
-
   let html = "";
 
   if (results.length === 0) {
-    html = "該当なし（デバッグログ確認）";
+    html = "該当なし";
   } else {
 
     results.forEach(r => {
