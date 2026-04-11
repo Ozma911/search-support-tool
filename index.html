@@ -31,36 +31,39 @@ button { margin-top: 15px; padding: 10px; width: 100%; }
 // 項目定義
 // =========================
 const fields = {
-"販売店の有無": ["", "有", "無"],
-"クラウド構成orハイブリッド構成": ["", "クラウド構成", "ハイブリッド構成"],
-"総床数カテゴリ": [""],
-"最大Viewer同時接続数": ["", "30台以下","31台以上60台未満","60台以上"],
-"契約期間": ["", "月額", "1年", "5年"],
-"眠りSCAN eyeの有無": ["", "有", "無"],
-"眠りSCAN導入台数": ["", "18床以下", "19床以上"],
-"眠りSCAN購入形態": ["", "購入", "レンタル"],
-"介護記録ソフト連携": ["","CCJ（CAREKARTE）","NDソフト（ほのぼのNEXT）"],
-"ナースコール連携": ["","アイホン（Vi-nurse）","ケアコム（CICCS-EX）"],
-"インカム連携": ["","CCJ（ハナスト）","BONX（BONX）"],
-"環境センサー連携": ["","環境センサー","環境センサー＋ドア開閉検知ユニット"],
-"トイレDIARY_個室か共用か": ["","個室用","共用"],
-"トイレDIARY_便器ふち幅": ["","30mm-40mm","41mm-50mm","51mm-60mm"],
-"トイレDIARY_遠距離か近距離か": ["","遠距離","近距離"],
-"トイレDIARY_ケーブル長": ["","2m","3.5m"],
-"トイレDIARY_介護記録ソフト連携": ["","有","無"],
-"eye_接続方式": ["","有線","無線"],
-"eye_マウント": ["","固定","移動式"],
-"eye_SDカード": ["","64GB（同梱）","128GB","256GB"],
-"おむつCOLOR_パッケージ": ["","単体使用 or 眠りSCAN4以外","眠りCONNECT連携"],
-"おむつCOLOR_セット": ["","1日セット","夜間セット"],
-"その他連携": ["","DFree","介護Plus"]
+  "販売店の有無": ["", "有", "無"],
+  "クラウド構成orハイブリッド構成": ["", "クラウド構成", "ハイブリッド構成"],
+  "総床数カテゴリ": ["", "18床以下","19床以上120床以下","121床以上200床以下","201床以上"],
+  "最大Viewer同時接続数": ["", "30台以下","31台以上60台未満","60台以上"],
+  "契約期間": ["", "月額", "1年", "5年"],
+  "眠りSCAN eyeの有無": ["", "有", "無"],
+  "眠りSCAN導入台数": ["", "18床以下", "19床以上"],
+  "眠りSCAN購入形態": ["", "購入", "レンタル"],
+  "介護記録ソフト連携": ["","CCJ（CAREKARTE）","NDソフト（ほのぼのNEXT）"],
+  "ナースコール連携": ["","アイホン（Vi-nurse）","ケアコム（CICCS-EX）"],
+  "インカム連携": ["","CCJ（ハナスト）","BONX（BONX）"],
+  "環境センサー連携": ["","環境センサー","環境センサー＋ドア開閉検知ユニット"],
+  "トイレDIARY_個室か共用か": ["","個室用","共用"],
+  "トイレDIARY_便器ふち幅": ["","30mm-40mm","41mm-50mm","51mm-60mm"],
+  "トイレDIARY_遠距離か近距離か": ["","遠距離","近距離"],
+  "トイレDIARY_ケーブル長": ["","2m","3.5m"],
+  "トイレDIARY_介護記録ソフト連携": ["","有","無"],
+  "eye_接続方式": ["","有線","無線"],
+  "eye_マウント": ["","固定","移動式"],
+  "eye_SDカード": ["","64GB（同梱）","128GB","256GB"],
+  "おむつCOLOR_パッケージ": ["","単体使用 or 眠りSCAN4以外","眠りCONNECT連携"],
+  "おむつCOLOR_セット": ["","1日セット","夜間セット"],
+  "その他連携": ["","DFree","介護Plus"]
 };
 
 
 // =========================
-// ★フォーム生成（これが消えると全部消える）
+// フォーム生成（確実版）
 // =========================
 function createForm() {
+
+  const container = document.getElementById("form");
+  if (!container) return;
 
   let html = "";
 
@@ -70,118 +73,57 @@ function createForm() {
     html += `<select id="${key}">`;
 
     fields[key].forEach(v => {
-      html += `<option value="${v}">${v || "未選択"}</option>`;
+      html += `<option value="${v}">${v === "" ? "未選択" : v}</option>`;
     });
 
     html += `</select>`;
   });
 
-  document.getElementById("form").innerHTML = html;
+  container.innerHTML = html;
 }
 
-// ★必ず実行
-window.onload = createForm;
 
-  createForm();
+// ★重要：DOM確実ロード後に1回だけ実行
+document.addEventListener("DOMContentLoaded", createForm);
 
-// =========================
-// 検索（安全版・軽量）
-// =========================
-// =========================
-// 総床数カテゴリ 切替
-// =========================
-document.addEventListener("change", function(e) {
-
-  if (e.target.id === "クラウド構成orハイブリッド構成") {
-
-    let val = e.target.value;
-    let bed = document.getElementById("総床数カテゴリ");
-
-    let options = [""];
-
-    if (val === "ハイブリッド構成") {
-      options = ["", "18床以下","19床以上120床以下","121床以上200床以下","201床以上"];
-    } else if (val === "クラウド構成") {
-      options = ["", "18床以下","19床以上"];
-    }
-
-    bed.innerHTML = options.map(v =>
-      `<option value="${v}">${v || "未選択"}</option>`
-    ).join("");
-  }
-});
 
 // =========================
-// 検索処理（シート紐づけ対応 完成版）
+// 検索処理（安定版）
 // =========================
 async function search() {
 
-  const res = await fetch("master.xlsx?nocache=" + Date.now());
+  const res = await fetch("master.xlsx?v=" + Date.now());
   const buf = await res.arrayBuffer();
   const wb = XLSX.read(buf);
 
   let results = [];
 
-  const sheetMap = {
-    "販売店の有無": "ALL",
-    "契約期間": "ALL",
-
-    "クラウド構成orハイブリッド構成": ["ハイブリッド構成サーバー特定マスタ"],
-    "総床数カテゴリ": ["ハイブリッド構成サーバー特定マスタ","【個室】トイレDIARYマスタ","【共用】トイレDIARYマスタ"],
-    "最大Viewer同時接続数": ["ハイブリッド構成サーバー特定マスタ"],
-
-    "眠りSCAN eyeの有無": ["ハイブリッド構成サーバー特定マスタ"],
-    "眠りSCAN導入台数": ["クラウド構成マスタ"],
-    "眠りSCAN購入形態": ["クラウド構成マスタ"],
-
-    "介護記録ソフト連携": ["介護記録ソフトマスタ"],
-    "ナースコール連携": ["ナースコールマスタ"],
-    "インカム連携": ["インカムマスタ"],
-    "環境センサー連携": ["環境センサマスタ"],
-
-    "トイレDIARY関連": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
-
-    "eye関連": ["眠りCONNECT eyeマスタ"],
-    "おむつCOLOR関連": ["おむつCOLORマスタ"],
-    "その他連携": ["その他連携マスタ"]
-  };
-
-  const selected = Object.keys(fields).filter(k =>
-    document.getElementById(k).value !== ""
-  );
-
   wb.SheetNames.forEach(sheetName => {
 
-    const sheet = wb.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    let data = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
 
-    // ★★★ ここが重要：最初にシートで完全フィルタ
-    selected.forEach(key => {
+    let filtered = data.filter(row => {
 
-      const targets = sheetMap[key];
-      if (targets !== "ALL" && !targets.includes(sheetName)) {
-        return; // このシートは対象外
-      }
+      return Object.keys(fields).every(key => {
 
-      const inputVal = document.getElementById(key).value;
-
-      data.forEach(row => {
+        const inputVal = document.getElementById(key).value;
+        if (!inputVal) return true;
 
         const excelVal = row[key];
-        if (!excelVal) return;
+        if (!excelVal) return true;
 
-        if (String(excelVal).includes(inputVal)) {
-          results.push({ sheet: sheetName, data: row });
-        }
-
+        return String(excelVal).trim() === inputVal.trim();
       });
 
     });
 
+    if (filtered.length > 0) {
+      results.push({ sheet: sheetName, data: filtered[0] });
+    }
   });
 
   // =========================
-  // 表示（未選択完全排除）
+  // 表示
   // =========================
   let html = "";
 
@@ -197,13 +139,11 @@ async function search() {
       Object.keys(r.data).forEach(k => {
 
         if (!k.includes("検索名")) return;
+        if (!r.data[k]) return;
 
-        const val = r.data[k];
-        if (!val || val === "未選択") return;
+        let no = k.replace("検索名","製品番号");
 
-        const no = k.replace("検索名","製品番号");
-
-        html += `<b>${k}</b><br>${val}<br>`;
+        html += `<b>${k}</b><br>${r.data[k]}<br>`;
         html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
       });
 
@@ -213,7 +153,7 @@ async function search() {
 
   document.getElementById("result").innerHTML = html;
 }
-  
+
 </script>
 
 </body>
