@@ -1,16 +1,18 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>検索サポートツール</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body { font-family: Arial; max-width: 600px; margin: auto; padding: 20px; }
-select, button { width: 100%; margin-bottom: 12px; padding: 8px; }
-.card { border: 1px solid #ccc; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+body { font-family: Arial; padding: 10px; }
+label { display: block; margin-top: 10px; font-weight: bold; }
+select { width: 100%; padding: 6px; }
+button { margin-top: 15px; padding: 10px; width: 100%; }
+#result { margin-top: 20px; }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
@@ -24,146 +26,221 @@ select, button { width: 100%; margin-bottom: 12px; padding: 8px; }
 <div id="result"></div>
 
 <script>
-let allData = [];
 
-// ★ 全項目（ここが重要）
-const fields = [
-"販売店の有無",
-"クラウド構成orハイブリッド構成",
-"総床数カテゴリ",
-"最大Viewer同時接続数",
-"契約期間",
-"眠りSCAN eyeの有無",
-"眠りSCAN導入台数",
-"眠りSCAN購入形態",
-"介護記録ソフト連携",
-"ナースコール連携",
-"インカム連携",
-"環境センサー連携",
-"トイレDIARY_個室か共用か",
-"トイレDIARY_便器ふち幅",
-"トイレDIARY_遠距離か近距離か",
-"トイレDIARY_ケーブル長",
-"トイレDIARY_介護記録ソフト連携",
-"eye_接続方式",
-"eye_マウント",
-"eye_SDカード",
-"おむつCOLOR_パッケージ",
-"おむつCOLOR_セット",
-"その他連携"
-];
+// =========================
+// 項目定義（マスタ完全一致）
+// =========================
+const fields = {
 
-async function init() {
+"販売店の有無": ["", "有", "無"],
 
-  const res = await fetch("master.xlsx");
-  const data = await res.arrayBuffer();
-  const workbook = XLSX.read(data);
+"クラウド構成orハイブリッド構成": ["", "クラウド構成", "ハイブリッド構成"],
 
-  workbook.SheetNames.forEach(name => {
-    const json = XLSX.utils.sheet_to_json(workbook.Sheets[name]);
-    allData.push(...json);
-  });
+// ★ここは空にする（動的制御）
+"総床数カテゴリ": [""],
 
-  createForm();
-}
+"最大Viewer同時接続数": ["",
+"30台以下",
+"31台以上60台未満",
+"60台以上"
+],
 
-// ★ フォーム自動生成
+"契約期間": ["", "月額", "1年", "5年"],
+
+"眠りSCAN eyeの有無": ["", "有", "無"],
+
+"眠りSCAN導入台数": ["", "18床以下", "19床以上"],
+
+"眠りSCAN購入形態": ["", "購入", "レンタル"],
+
+"介護記録ソフト連携": ["",
+"CCJ（CAREKARTE）",
+"NDソフト（ほのぼのNEXT）",
+"ワイズマン（ワイズマンSP）",
+"内田洋行（絆Core）",
+"日立システムズ（福祉の森）",
+"BOS（ブルーオーシャンノート）",
+"EMシステムズ（すこやかサン）",
+"富士通（HOPE LifeMark WINCARE）",
+"東経システム（福祉見聞録）"
+],
+
+"ナースコール連携": ["",
+"アイホン（Vi-nurse）",
+"ケアコム（CICCS-EX）",
+"ナカヨ（NYC-Si）",
+"平和テクノ（Yuiコール）",
+"名電通（ナースエコール）",
+"ジーコム（ジーコム）",
+"iSEED（パルモスマートコール）",
+"ユニティー・ネットワーク（あんしんの絆）"
+],
+
+"インカム連携": ["",
+"CCJ（ハナスト）",
+"BONX（BONX）",
+"サイエンスアーツ（buddycom）",
+"TBeye（クリアトークカム）",
+"VOYT（VOYT CONNECT）"
+],
+
+"環境センサー連携": ["",
+"環境センサー",
+"環境センサー＋ドア開閉検知ユニット"
+],
+
+"トイレDIARY_個室か共用か": ["", "個室用", "共用"],
+
+"トイレDIARY_便器ふち幅": ["",
+"30mm-40mm",
+"41mm-50mm",
+"51mm-60mm"
+],
+
+"トイレDIARY_遠距離か近距離か": ["", "遠距離", "近距離"],
+
+"トイレDIARY_ケーブル長": ["", "2m", "3.5m"],
+
+"トイレDIARY_介護記録ソフト連携": ["", "有", "無"],
+
+"eye_接続方式": ["", "有線", "無線"],
+
+"eye_マウント": ["", "固定", "移動式"],
+
+"eye_SDカード": ["",
+"64GB（同梱）",
+"128GB",
+"256GB"
+],
+
+"おむつCOLOR_パッケージ": ["",
+"単体使用 or 眠りSCAN4以外",
+"眠りCONNECT連携"
+],
+
+"おむつCOLOR_セット": ["",
+"1日セット",
+"夜間セット"
+],
+
+"その他連携": ["", "DFree", "介護Plus"]
+
+};
+
+// =========================
+// フォーム生成
+// =========================
 function createForm() {
-
   let html = "";
 
-  fields.forEach(f => {
-    html += `<label>${f}</label>`;
-    html += `<select id="${f}"><option value="">未選択</option></select>`;
+  Object.keys(fields).forEach(key => {
+    html += `<label>${key}</label>`;
+    html += `<select id="${key}">`;
+
+    fields[key].forEach(v => {
+      html += `<option value="${v}">${v || "未選択"}</option>`;
+    });
+
+    html += `</select>`;
   });
 
   document.getElementById("form").innerHTML = html;
 
-  // 初期選択肢
-  fields.forEach(setOptions);
-
+  // 初期状態：総床数は選べない
+  document.getElementById("総床数カテゴリ").disabled = true;
 }
 
-// ★ 選択肢生成
-function setOptions(field) {
+createForm();
 
-  const values = [...new Set(
-    allData.map(r => r[field]).filter(v => v)
-  )];
-
-  let html = "<option value=''>未選択</option>";
-
-  values.forEach(v => {
-    html += `<option value="${v}">${v}</option>`;
-  });
-
-  document.getElementById(field).innerHTML = html;
-}
-
-// ★ 構成→床数連動
+// =========================
+// 構成 → 総床数の連動
+// =========================
 document.addEventListener("change", function(e) {
 
   if (e.target.id === "クラウド構成orハイブリッド構成") {
 
-    const config = e.target.value;
+    const val = e.target.value;
+    const bed = document.getElementById("総床数カテゴリ");
 
-    const values = [...new Set(
-      allData
-        .filter(r => r["クラウド構成orハイブリッド構成"] === config)
-        .map(r => r["総床数カテゴリ"])
-        .filter(v => v)
-    )];
+    let options = [""];
 
-    let html = "<option value=''>未選択</option>";
+    if (val === "ハイブリッド構成") {
+      options = [
+        "",
+        "18床以下",
+        "19床以上120床以下",
+        "121床以上200床以下",
+        "201床以上"
+      ];
+      bed.disabled = false;
+    }
 
-    values.forEach(v => {
-      html += `<option value="${v}">${v}</option>`;
-    });
+    else if (val === "クラウド構成") {
+      options = [
+        "",
+        "18床以下",
+        "19床以上"
+      ];
+      bed.disabled = false;
+    }
 
-    document.getElementById("総床数カテゴリ").innerHTML = html;
+    else {
+      bed.disabled = true;
+      bed.innerHTML = `<option value="">未選択</option>`;
+      return;
+    }
+
+    bed.innerHTML = options.map(v =>
+      `<option value="${v}">${v || "未選択"}</option>`
+    ).join("");
+
+    bed.value = ""; // リセット
   }
 
 });
 
-// ★ 検索
-function search() {
+// =========================
+// 検索処理
+// =========================
+async function search() {
 
-  const conditions = {};
+  const res = await fetch("master.xlsx");
+  const buf = await res.arrayBuffer();
+  const wb = XLSX.read(buf);
 
-  fields.forEach(f => {
-    conditions[f] = document.getElementById(f).value;
-  });
+  let results = [];
 
-  const filtered = allData.filter(row => {
+  wb.SheetNames.forEach(name => {
+    let data = XLSX.utils.sheet_to_json(wb.Sheets[name]);
 
-    for (let key in conditions) {
+    let filtered = data.filter(row => {
+      return Object.keys(fields).every(key => {
+        let val = document.getElementById(key).value;
+        if (!val) return true;
+        return row[key] == val;
+      });
+    });
 
-      if (conditions[key] === "") continue;
-
-      if (row[key] !== conditions[key]) {
-        return false;
-      }
-    }
-
-    return true;
+    results.push(...filtered);
   });
 
   let html = "";
 
-  if (filtered.length === 0) {
+  if (results.length === 0) {
     html = "該当なし";
   } else {
 
-    filtered.forEach(row => {
+    results.forEach(row => {
+      html += "<div style='border:1px solid #ccc;padding:10px;margin-bottom:10px;'>";
 
-      html += "<div class='card'>";
+      Object.keys(row).forEach(k => {
+        if (k.includes("検索名") && row[k]) {
 
-      Object.keys(row).forEach(key => {
+          let no = k.replace("検索名","製品番号");
 
-        if ((key.includes("検索名") || key.includes("製品番号")) && row[key]) {
-          html += "<b>" + key + "</b><br>" + row[key] + "<br><br>";
+          html += `<b>${k}：</b>${row[k]}<br>`;
+          html += `<b>${no}：</b>${row[no] || ""}<br><br>`;
         }
-
       });
 
       html += "</div>";
@@ -173,7 +250,6 @@ function search() {
   document.getElementById("result").innerHTML = html;
 }
 
-init();
 </script>
 
 </body>
