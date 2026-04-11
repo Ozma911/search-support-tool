@@ -150,7 +150,31 @@ const fields = {
 ]
 };
 
+// =========================
+// 総床数カテゴリ 切替
+// =========================
+document.addEventListener("change", function(e) {
 
+  if (e.target.id === "クラウド構成orハイブリッド構成") {
+
+    let val = e.target.value;
+    let bed = document.getElementById("総床数カテゴリ");
+
+    let options = [""];
+
+    if (val === "ハイブリッド構成") {
+      options = ["", "18床以下","19床以上120床以下","121床以上200床以下","201床以上"];
+    } else if (val === "クラウド構成") {
+      options = ["", "18床以下","19床以上"];
+    }
+
+    bed.innerHTML = options.map(v =>
+      `<option value="${v}">${v || "未選択"}</option>`
+    ).join("");
+  }
+});
+
+  
 // =========================
 // ★ここにJSON貼り付け
 // =========================
