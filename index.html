@@ -124,12 +124,12 @@ async function search() {
     "その他連携": ["その他連携マスタ"]
   };
 
+  // ★ここが重要：空は完全除外
   const selectedKeys = Object.keys(fields)
     .filter(k => document.getElementById(k).value !== "");
 
   for (let sheetName of wb.SheetNames) {
 
-    // ★重要：headerを固定しない（ズレ防止）
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
       header: 1,
       defval: ""
@@ -137,46 +137,36 @@ async function search() {
 
     if (!rows || rows.length < 2) continue;
 
-    // ★1行目＝ヘッダー
-    const headers = rows[0].map(h =>
-      String(h)
-        .replace(/\u00A0/g, "")
-        .replace(/\r/g, "")
-        .replace(/\n/g, "")
-        .trim()
-    );
-
+    const headers = rows[0].map(h => String(h).trim());
     const dataRows = rows.slice(1);
 
-    const hit = dataRows.find(row => {
+    const hitRow = dataRows.find(row => {
 
+      // ★条件1個でもNGなら即終了（AND条件）
       for (let key of selectedKeys) {
 
         const inputVal = document.getElementById(key).value;
-
         const targetSheets = sheetMap[key];
+
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
           return false;
         }
 
-        // ★ヘッダーから列番号取得
         const colIndex = headers.indexOf(key);
-        if (colIndex === -1) continue;
+        if (colIndex === -1) return false;
 
         const excelVal = String(row[colIndex] ?? "").trim();
 
-        if (!excelVal) continue;
+        if (!excelVal) return false;
 
-        if (excelVal !== inputVal) {
-          return false;
-        }
+        if (excelVal !== inputVal) return false;
       }
 
       return true;
     });
 
-    if (hit) {
-      results.push({ sheet: sheetName, data: hit });
+    if (hitRow) {
+      results.push({ sheet: sheetName, row: hitRow });
     }
   }
 
@@ -187,12 +177,9 @@ async function search() {
   } else {
 
     results.forEach(r => {
-
       html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
-      html += `<b>シート：</b>${r.sheet}<br><br>`;
-
-      html += `該当データあり（行一致）`;
-
+      html += `<b>シート：</b>${r.sheet}<br>`;
+      html += `一致データあり`;
       html += `</div>`;
     });
   }
