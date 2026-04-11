@@ -175,7 +175,7 @@ async function search() {
   });
 
 // =========================
-// 表示（最終完成：サーバーは常に表示）
+// 表示（完成版：未選択のみ排除＆確実表示）
 // =========================
 let html = "";
 
@@ -183,51 +183,54 @@ if (results.length === 0) {
   html = "該当なし";
 } else {
 
-  const selectedValues = {};
-  Object.keys(fields).forEach(k => {
-    selectedValues[k] = document.getElementById(k).value;
+  // 選択されている項目だけ取得
+  let selected = Object.keys(fields).filter(k => {
+    return document.getElementById(k).value !== "";
   });
 
   results.forEach(r => {
 
-    // =========================
-    // オプション系のみ制御
-    // =========================
-    let isOptionSheet = false;
-
-    if (r.sheet.includes("介護記録")) {
-      isOptionSheet = true;
-      if (!selectedValues["介護記録ソフト連携"]) return;
-    }
-
-    if (r.sheet.includes("ナースコール")) {
-      isOptionSheet = true;
-      if (!selectedValues["ナースコール連携"]) return;
-    }
-
-    if (r.sheet.includes("インカム")) {
-      isOptionSheet = true;
-      if (!selectedValues["インカム連携"]) return;
-    }
-
-    // ★ここ重要：サーバー系は無条件表示（何もしない）
-
-    html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
-    html += `<b>シート：</b>${r.sheet}<br><br>`;
+    let block = "";
 
     Object.keys(r.data).forEach(k => {
 
-      if (!k.includes("検索名") || !r.data[k]) return;
+      // 検索名だけ対象
+      if (!k.includes("検索名")) return;
+      if (!r.data[k]) return;
 
-      let no = k.replace("検索名","製品番号");
+      let show = false;
 
-      html += `<b>${k}</b><br>${r.data[k]}<br>`;
-      html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
+      // =========================
+      // ★選択項目とキー名の一致で判断（シンプル＆確実）
+      // =========================
+      selected.forEach(sel => {
+        if (k.includes(sel.replace(/_.*/, ""))) {
+          show = true;
+        }
+      });
 
+      if (!show) return;
+
+      let no = k.replace("検索名", "製品番号");
+
+      block += `<b>${k}</b><br>${r.data[k]}<br>`;
+      block += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
     });
 
-    html += `</div>`;
+    // 何も表示対象が無い行は出さない
+    if (block !== "") {
+      html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
+      html += `<b>シート：</b>${r.sheet}<br><br>`;
+      html += block;
+      html += `</div>`;
+    }
+
   });
+
+  // 最終的に何もなければ該当なし
+  if (html === "") {
+    html = "該当なし";
+  }
 }
 
 document.getElementById("result").innerHTML = html;
