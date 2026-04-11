@@ -2,149 +2,88 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>検索サポートツール</title>
-
-<style>
-body { font-family: Arial; padding: 10px; }
-label { display: block; margin-top: 10px; font-weight: bold; }
-select { width: 100%; padding: 6px; }
-button { margin-top: 15px; padding: 10px; width: 100%; }
-#result { margin-top: 20px; }
-</style>
-
+<title>Excel → JSON変換</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<style>
+body { font-family: Arial; padding: 20px; }
+textarea { width: 100%; height: 300px; margin-top: 10px; }
+button { padding: 10px; margin-top: 10px; }
+</style>
 </head>
-
 <body>
 
-<h2>検索サポートツール</h2>
+<h2>Excel → JSON変換ツール</h2>
 
-<div id="form"></div>
+<input type="file" id="file" accept=".xlsx,.xls" />
 
-<button onclick="search()">検索</button>
+<button onclick="convert()">変換</button>
+<button onclick="copyJson()">JSONコピー</button>
 
-<div id="result"></div>
+<textarea id="output"></textarea>
 
 <script>
 
-// =========================
-// 項目定義
-// =========================
-const fields = {
-  "販売店の有無": ["", "有", "無"],
-  "クラウド構成orハイブリッド構成": ["", "クラウド構成", "ハイブリッド構成"],
-  "総床数カテゴリ": ["", "18床以下","19床以上120床以下","121床以上200床以下","201床以上"],
-  "最大Viewer同時接続数": ["", "30台以下","31台以上60台未満","60台以上"],
-  "契約期間": ["", "月額", "1年", "5年"],
-  "眠りSCAN eyeの有無": ["", "有", "無"],
-  "眠りSCAN導入台数": ["", "18床以下", "19床以上"],
-  "眠りSCAN購入形態": ["", "購入", "レンタル"],
-  "介護記録ソフト連携": ["","CCJ（CAREKARTE）","NDソフト（ほのぼのNEXT）"],
-  "ナースコール連携": ["","アイホン（Vi-nurse）","ケアコム（CICCS-EX）"],
-  "インカム連携": ["","CCJ（ハナスト）","BONX（BONX）"],
-  "環境センサー連携": ["","環境センサー","環境センサー＋ドア開閉検知ユニット"],
-  "トイレDIARY_個室か共用か": ["","個室用","共用"],
-  "トイレDIARY_便器ふち幅": ["","30mm-40mm","41mm-50mm","51mm-60mm"],
-  "トイレDIARY_遠距離か近距離か": ["","遠距離","近距離"],
-  "トイレDIARY_ケーブル長": ["","2m","3.5m"],
-  "トイレDIARY_介護記録ソフト連携": ["","有","無"],
-  "eye_接続方式": ["","有線","無線"],
-  "eye_マウント": ["","固定","移動式"],
-  "eye_SDカード": ["","64GB（同梱）","128GB","256GB"],
-  "おむつCOLOR_パッケージ": ["","単体使用 or 眠りSCAN4以外","眠りCONNECT連携"],
-  "おむつCOLOR_セット": ["","1日セット","夜間セット"],
-  "その他連携": ["","DFree","介護Plus"]
-};
-
+let resultData = null;
 
 // =========================
-// フォーム生成（確実版）
+// 変換処理
 // =========================
-function createForm() {
+function convert() {
 
-  const container = document.getElementById("form");
-  if (!container) return;
+  const file = document.getElementById("file").files[0];
 
-  let html = "";
-
-  Object.keys(fields).forEach(key => {
-
-    html += `<label>${key}</label>`;
-    html += `<select id="${key}">`;
-
-    fields[key].forEach(v => {
-      html += `<option value="${v}">${v === "" ? "未選択" : v}</option>`;
-    });
-
-    html += `</select>`;
-  });
-
-  container.innerHTML = html;
-}
-
-
-// ★重要：DOM確実ロード後に1回だけ実行
-document.addEventListener("DOMContentLoaded", createForm);
-
-
-// =========================
-// 検索処理（安定版）
-// =========================
-async function search() {
-
-  const res = await fetch("master.xlsx?v=" + Date.now());
-  const buf = await res.arrayBuffer();
-  const wb = XLSX.read(buf);
-
-  let results = [];
-
-  const selectedKeys = Object.keys(fields)
-    .filter(k => document.getElementById(k).value !== "");
-
-  for (let sheetName of wb.SheetNames) {
-
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
-      defval: "",
-      raw: false
-    });
-
-    for (let row of rows) {
-
-      let ok = true;
-
-      for (let key of selectedKeys) {
-
-        const targetSheets = sheetMap[key];
-
-        // ★このシートに関係ない条件はスキップ（重要）
-        if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
-          continue;
-        }
-
-        const inputVal = document.getElementById(key).value;
-        const excelVal = String(row[key] ?? "").trim();
-
-        // ★その列が存在しないならスキップ（重要）
-        if (!excelVal) continue;
-
-        // ★不一致ならNG
-        if (excelVal !== inputVal) {
-          ok = false;
-          break;
-        }
-      }
-
-      if (ok) {
-        results.push({ sheet: sheetName, row });
-        break; // ★1件出たらそのシート終了
-      }
-    }
+  if (!file) {
+    alert("Excelファイルを選択してください");
+    return;
   }
 
-  document.getElementById("result").innerHTML =
-    results.length ? "ヒットあり" : "該当なし";
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, { type: "array" });
+
+    let output = {};
+
+    wb.SheetNames.forEach(sheetName => {
+
+      const sheet = wb.Sheets[sheetName];
+
+      const rows = XLSX.utils.sheet_to_json(sheet, {
+        defval: "",
+        raw: false
+      });
+
+      output[sheetName] = rows;
+    });
+
+    resultData = output;
+
+    document.getElementById("output").value =
+      JSON.stringify(output, null, 2);
+  };
+
+  reader.readAsArrayBuffer(file);
 }
-  
+
+// =========================
+// コピー
+// =========================
+function copyJson() {
+
+  if (!resultData) {
+    alert("先に変換してください");
+    return;
+  }
+
+  navigator.clipboard.writeText(
+    JSON.stringify(resultData, null, 2)
+  );
+
+  alert("コピーしました");
+}
+
 </script>
 
 </body>
