@@ -97,7 +97,6 @@ async function search() {
   const wb = XLSX.read(buf);
 
   let results = [];
-  let debugLogs = [];
 
   const selectedKeys = Object.keys(fields)
     .filter(k => document.getElementById(k).value !== "");
@@ -109,60 +108,41 @@ async function search() {
       raw: false
     });
 
-    rows.forEach((row, idx) => {
+    for (let row of rows) {
 
-      let mismatch = [];
+      let ok = true;
 
-      let ok = selectedKeys.every(key => {
+      for (let key of selectedKeys) {
 
-        const inputVal = document.getElementById(key).value;
         const targetSheets = sheetMap[key];
 
-        // シート対象外
+        // ★このシートに関係ない条件はスキップ（重要）
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
-          return true;
+          continue;
         }
 
+        const inputVal = document.getElementById(key).value;
         const excelVal = String(row[key] ?? "").trim();
 
-        // 空は無視
-        if (!excelVal) return true;
+        // ★その列が存在しないならスキップ（重要）
+        if (!excelVal) continue;
 
-        // 不一致チェック
+        // ★不一致ならNG
         if (excelVal !== inputVal) {
-          mismatch.push(`${key} → 入力:${inputVal} / Excel:${excelVal}`);
-          return false;
+          ok = false;
+          break;
         }
-
-        return true;
-      });
+      }
 
       if (ok) {
-        results.push({ sheet: sheetName, row: idx });
-      } else if (mismatch.length > 0) {
-        debugLogs.push(
-          `シート：${sheetName} / 行：${idx + 2}\n` +
-          mismatch.join("\n") + "\n"
-        );
+        results.push({ sheet: sheetName, row });
+        break; // ★1件出たらそのシート終了
       }
-    });
+    }
   }
 
-  let html = "";
-
-  if (results.length === 0) {
-    html = "該当なし\n\n【不一致ログ】\n\n" + debugLogs.slice(0, 20).join("\n----------------\n");
-  } else {
-
-    results.forEach(r => {
-      html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
-      html += `<b>シート：</b>${r.sheet}<br>`;
-      html += `一致あり`;
-      html += `</div>`;
-    });
-  }
-
-  document.getElementById("result").innerText = html;
+  document.getElementById("result").innerHTML =
+    results.length ? "ヒットあり" : "該当なし";
 }
   
 </script>
