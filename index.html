@@ -125,44 +125,41 @@ async function search() {
   };
 
   const selectedKeys = Object.keys(fields)
-    .filter(k => document.getElementById(k).value !== "");
+    .filter(k => {
+      const v = document.getElementById(k).value;
+      return v !== null && v !== "";
+    });
 
   for (let sheetName of wb.SheetNames) {
 
     let data = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
-      defval: ""   // ★空欄対策
+      defval: ""
     });
 
     let hit = data.find(row => {
 
-      let matched = 0;
-
       for (let key of selectedKeys) {
 
-        const inputVal = String(document.getElementById(key).value || "").trim();
-        if (!inputVal) continue;
+        const inputVal = document.getElementById(key).value;
 
         const targetSheets = sheetMap[key];
 
-        // シート対象外は評価しない
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
-          continue;
+          return false;
         }
 
         const excelVal = String(row[key] || "").trim();
 
-        // 列なし・空欄は無視（落とさない）
-        if (excelVal === "") continue;
+        // 列がない・空白 → 無視（判定しない）
+        if (!excelVal) continue;
 
-        // 完全一致のみ採用（ここが安定ポイント）
+        // 不一致なら即NG
         if (excelVal !== inputVal) {
           return false;
         }
-
-        matched++;
       }
 
-      return matched > 0;
+      return true;
     });
 
     if (hit) {
@@ -170,9 +167,6 @@ async function search() {
     }
   }
 
-  // =========================
-  // 表示（未選択は出さない）
-  // =========================
   let html = "";
 
   if (results.length === 0) {
@@ -185,7 +179,6 @@ async function search() {
       html += `<b>シート：</b>${r.sheet}<br><br>`;
 
       Object.keys(r.data).forEach(k => {
-
         if (!k.includes("検索名")) return;
         if (!r.data[k]) return;
 
