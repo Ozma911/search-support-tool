@@ -103,7 +103,7 @@ document.addEventListener("change", function(e) {
 });
 
 // =========================
-// 検索処理（安定版）
+// 検索処理（シート紐づけ対応 完成版）
 // =========================
 async function search() {
 
@@ -113,64 +113,70 @@ async function search() {
 
   let results = [];
 
-  wb.SheetNames.forEach(name => {
+  // =========================
+  // 項目 → 対象シート
+  // =========================
+  const sheetMap = {
+    "販売店の有無": "ALL",
+    "契約期間": "ALL",
 
-    let data = XLSX.utils.sheet_to_json(wb.Sheets[name]);
+    "クラウド構成orハイブリッド構成": ["ハイブリッド構成サーバー特定マスタ"],
+    "総床数カテゴリ": ["ハイブリッド構成サーバー特定マスタ","【個室】トイレDIARYマスタ","【共用】トイレDIARYマスタ"],
+    "最大Viewer同時接続数": ["ハイブリッド構成サーバー特定マスタ"],
+    "眠りSCAN eyeの有無": ["ハイブリッド構成サーバー特定マスタ"],
 
-    let filtered = data.filter(row => {
+    "眠りSCAN導入台数": ["クラウド構成マスタ"],
+    "眠りSCAN購入形態": ["クラウド構成マスタ"],
 
-      return Object.keys(fields).every(key => {
+    "介護記録ソフト連携": ["介護記録ソフトマスタ"],
+    "ナースコール連携": ["ナースコールマスタ"],
+    "インカム連携": ["インカムマスタ"],
+    "環境センサー連携": ["環境センサマスタ"],
 
-        let val = document.getElementById(key).value;
-        if (!val) return true;
+    "トイレDIARY_個室か共用か": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
+    "トイレDIARY_便器ふち幅": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
+    "トイレDIARY_遠距離か近距離か": ["【共用】トイレDIARYマスタ"],
+    "トイレDIARY_ケーブル長": ["【共用】トイレDIARYマスタ"],
+    "トイレDIARY_介護記録ソフト連携": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
 
-        let excelVal = row[key];
-        if (excelVal === undefined) return true;
+    "eye_接続方式": ["眠りCONNECT eyeマスタ"],
+    "eye_マウント": ["眠りCONNECT eyeマスタ"],
+    "eye_SDカード": ["眠りCONNECT eyeマスタ"],
 
-        return String(excelVal).includes(val);
-      });
+    "おむつCOLOR_パッケージ": ["おむつCOLORマスタ"],
+    "おむつCOLOR_セット": ["おむつCOLORマスタ"],
 
-    });
+    "その他連携": ["その他連携マスタ"]
+  };
 
-    filtered.forEach(r => results.push({sheet:name, data:r}));
-
+  // 選択されている項目
+  let selected = Object.keys(fields).filter(k => {
+    return document.getElementById(k).value !== "";
   });
 
-// =========================
-// 検索処理（ヒット優先・安定版）
-// =========================
-async function search() {
-
-  const res = await fetch("master.xlsx?nocache=" + Date.now());
-  const buf = await res.arrayBuffer();
-  const wb = XLSX.read(buf);
-
-  let results = [];
-
   wb.SheetNames.forEach(name => {
 
     let data = XLSX.utils.sheet_to_json(wb.Sheets[name]);
 
     let filtered = data.filter(row => {
 
-      return Object.keys(fields).every(key => {
+      return selected.every(key => {
 
         let inputVal = document.getElementById(key).value;
+        let target = sheetMap[key];
 
-        // 未選択は無視
-        if (!inputVal) return true;
+        // =========================
+        // このシートが対象じゃない → 無視（超重要）
+        // =========================
+        if (target !== "ALL") {
+          if (!target.includes(name)) return true;
+        }
 
         let excelVal = row[key];
 
-        // Excelに列が無い → 無視
         if (excelVal === undefined) return true;
-
-        // 空欄 → 無視
         if (excelVal === "") return true;
 
-        // =========================
-        // ★ここをゆるくするのが重要
-        // =========================
         return String(excelVal).includes(inputVal);
       });
 
@@ -182,16 +188,13 @@ async function search() {
 
   });
 
-  // デバッグ（件数確認）
-  console.log("ヒット件数:", results.length);
-
   // =========================
-  // 表示（シンプル）
+  // 表示
   // =========================
   let html = "";
 
   if (results.length === 0) {
-    html = "該当なし（※条件が厳しすぎ or マスタ不一致）";
+    html = "該当なし";
   } else {
 
     results.forEach(r => {
@@ -200,6 +203,7 @@ async function search() {
       html += `<b>シート：</b>${r.sheet}<br><br>`;
 
       Object.keys(r.data).forEach(k => {
+
         if (k.includes("検索名") && r.data[k]) {
 
           let no = k.replace("検索名","製品番号");
@@ -215,6 +219,7 @@ async function search() {
 
   document.getElementById("result").innerHTML = html;
 }
+  
 </script>
 
 </body>
