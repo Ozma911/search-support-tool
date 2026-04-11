@@ -124,36 +124,35 @@ async function search() {
     "その他連携": ["その他連携マスタ"]
   };
 
-  let selectedKeys = Object.keys(fields).filter(k => {
-    return document.getElementById(k).value !== "";
-  });
+  const selectedKeys = Object.keys(fields)
+    .filter(k => document.getElementById(k).value !== "");
 
-  wb.SheetNames.forEach(sheetName => {
+  for (let sheetName of wb.SheetNames) {
 
     let data = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
 
-    let filtered = data.filter(row => {
+    let hit = data.find(row => {
 
       for (let key of selectedKeys) {
 
         const inputVal = document.getElementById(key).value;
-        const excelVal = row[key];
-
-        // シート対象外は即除外
-        const target = sheetMap[key];
-        if (target !== "ALL") {
-          if (!target.includes(sheetName)) return false;
-        }
-
-        // 未入力はスキップ
         if (!inputVal) continue;
 
-        // Excel側に値なし → 不一致扱い
-        if (excelVal === undefined || excelVal === null || excelVal === "") {
+        const targetSheets = sheetMap[key];
+
+        // シート対象外ならスキップ（評価しないだけ）
+        if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
           return false;
         }
 
-        // 完全一致
+        const excelVal = row[key];
+
+        // ★重要：列が無い場合は「無視」（ここが修正点）
+        if (excelVal === undefined || excelVal === null || excelVal === "") {
+          continue;
+        }
+
+        // 一致しないならNG
         if (String(excelVal).trim() !== inputVal.trim()) {
           return false;
         }
@@ -162,12 +161,11 @@ async function search() {
       return true;
     });
 
-    if (filtered.length > 0) {
-      results.push({ sheet: sheetName, data: filtered[0] });
+    if (hit) {
+      results.push({ sheet: sheetName, data: hit });
     }
-  });
+  }
 
-  // 表示（未選択は出さない）
   let html = "";
 
   if (results.length === 0) {
@@ -183,7 +181,7 @@ async function search() {
         if (!k.includes("検索名")) return;
         if (!r.data[k]) return;
 
-        let no = k.replace("検索名","製品番号");
+        let no = k.replace("検索名", "製品番号");
 
         html += `<b>${k}</b><br>${r.data[k]}<br>`;
         html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
