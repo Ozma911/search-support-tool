@@ -97,121 +97,72 @@ async function search() {
   const wb = XLSX.read(buf);
 
   let results = [];
+  let debugLogs = [];
 
-  // =========================
-  // 列番号固定マップ
-  // =========================
-  const columnIndexMap = {
-    "販売店の有無": 0,
-    "クラウド構成orハイブリッド構成": 1,
-    "総床数カテゴリ": 2,
-    "最大Viewer同時接続数": 3,
-    "契約期間": 4,
-    "眠りSCAN eyeの有無": 5,
-    "眠りSCAN導入台数": 6,
-    "眠りSCAN購入形態": 7,
-    "介護記録ソフト連携": 8,
-    "ナースコール連携": 9,
-    "インカム連携": 10,
-    "環境センサー連携": 11,
-    "トイレDIARY_個室か共用か": 12,
-    "トイレDIARY_便器ふち幅": 13,
-    "トイレDIARY_遠距離か近距離か": 14,
-    "トイレDIARY_ケーブル長": 15,
-    "トイレDIARY_介護記録ソフト連携": 16,
-    "eye_接続方式": 17,
-    "eye_マウント": 18,
-    "eye_SDカード": 19,
-    "おむつCOLOR_パッケージ": 20,
-    "おむつCOLOR_セット": 21,
-    "その他連携": 22
-  };
-
-  // =========================
-  // シート対象マップ
-  // =========================
-  const sheetMap = {
-    "販売店の有無": "ALL",
-    "契約期間": "ALL",
-    "クラウド構成orハイブリッド構成": ["ハイブリッド構成サーバー特定マスタ"],
-    "総床数カテゴリ": ["ハイブリッド構成サーバー特定マスタ","【個室】トイレDIARYマスタ","【共用】トイレDIARYマスタ"],
-    "最大Viewer同時接続数": ["ハイブリッド構成サーバー特定マスタ"],
-    "眠りSCAN eyeの有無": ["ハイブリッド構成サーバー特定マスタ"],
-    "眠りSCAN導入台数": ["クラウド構成マスタ"],
-    "眠りSCAN購入形態": ["クラウド構成マスタ"],
-    "介護記録ソフト連携": ["介護記録ソフトマスタ"],
-    "ナースコール連携": ["ナースコールマスタ"],
-    "インカム連携": ["インカムマスタ"],
-    "環境センサー連携": ["環境センサマスタ"],
-    "トイレDIARY_個室か共用か": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
-    "トイレDIARY_便器ふち幅": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
-    "トイレDIARY_遠距離か近距離か": ["【共用】トイレDIARYマスタ"],
-    "トイレDIARY_ケーブル長": ["【共用】トイレDIARYマスタ"],
-    "トイレDIARY_介護記録ソフト連携": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
-    "eye_接続方式": ["眠りCONNECT eyeマスタ"],
-    "eye_マウント": ["眠りCONNECT eyeマスタ"],
-    "eye_SDカード": ["眠りCONNECT eyeマスタ"],
-    "おむつCOLOR_パッケージ": ["おむつCOLORマスタ"],
-    "おむつCOLOR_セット": ["おむつCOLORマスタ"],
-    "その他連携": ["その他連携マスタ"]
-  };
-
-  // =========================
-  // 選択された項目だけ抽出（超重要）
-  // =========================
-  const selectedKeys = Object.keys(columnIndexMap)
+  const selectedKeys = Object.keys(fields)
     .filter(k => document.getElementById(k).value !== "");
 
-  // =========================
-  // 検索
-  // =========================
   for (let sheetName of wb.SheetNames) {
 
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
-      header: 1,
-      defval: ""
+      defval: "",
+      raw: false
     });
 
-    if (!rows || rows.length < 2) continue;
+    rows.forEach((row, idx) => {
 
-    const dataRows = rows.slice(1);
+      let mismatch = [];
 
-    const hit = dataRows.find(row => {
-
-      for (let key of selectedKeys) {
+      let ok = selectedKeys.every(key => {
 
         const inputVal = document.getElementById(key).value;
         const targetSheets = sheetMap[key];
 
-        // シート対象外はスキップ
+        // シート対象外
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
+          return true;
+        }
+
+        const excelVal = String(row[key] ?? "").trim();
+
+        // 空は無視
+        if (!excelVal) return true;
+
+        // 不一致チェック
+        if (excelVal !== inputVal) {
+          mismatch.push(`${key} → 入力:${inputVal} / Excel:${excelVal}`);
           return false;
         }
 
-        const colIndex = columnIndexMap[key];
+        return true;
+      });
 
-        if (colIndex === undefined) return false;
-
-        const excelVal = String(row[colIndex] ?? "").trim();
-
-        if (!excelVal) return false;
-
-        if (excelVal !== inputVal) return false;
+      if (ok) {
+        results.push({ sheet: sheetName, row: idx });
+      } else if (mismatch.length > 0) {
+        debugLogs.push(
+          `シート：${sheetName} / 行：${idx + 2}\n` +
+          mismatch.join("\n") + "\n"
+        );
       }
-
-      return true;
     });
-
-    if (hit) {
-      results.push({ sheet: sheetName });
-    }
   }
 
-  // =========================
-  // 表示
-  // =========================
-  document.getElementById("result").innerHTML =
-    results.length ? "ヒットあり" : "該当なし";
+  let html = "";
+
+  if (results.length === 0) {
+    html = "該当なし\n\n【不一致ログ】\n\n" + debugLogs.slice(0, 20).join("\n----------------\n");
+  } else {
+
+    results.forEach(r => {
+      html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
+      html += `<b>シート：</b>${r.sheet}<br>`;
+      html += `一致あり`;
+      html += `</div>`;
+    });
+  }
+
+  document.getElementById("result").innerText = html;
 }
   
 </script>
