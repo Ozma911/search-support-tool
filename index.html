@@ -174,8 +174,8 @@ async function search() {
 
   });
 
-  // =========================
-// 表示（選択項目のみ表示版）
+// =========================
+// 表示（最終完成版：未選択完全排除）
 // =========================
 let html = "";
 
@@ -183,9 +183,28 @@ if (results.length === 0) {
   html = "該当なし";
 } else {
 
-  // ユーザーが選択した項目を取得
-  let selectedKeys = Object.keys(fields).filter(key => {
-    return document.getElementById(key).value !== "";
+  // 項目 → 表示カテゴリ対応
+  const mapping = {
+    "介護記録ソフト連携": "介護記録",
+    "ナースコール連携": "ナースコール",
+    "インカム連携": "インカム",
+    "環境センサー連携": "環境センサー",
+    "トイレDIARY_個室か共用か": "トイレ",
+    "トイレDIARY_便器ふち幅": "トイレ",
+    "トイレDIARY_遠距離か近距離か": "トイレ",
+    "トイレDIARY_ケーブル長": "トイレ",
+    "トイレDIARY_介護記録ソフト連携": "トイレ",
+    "eye_接続方式": "eye",
+    "eye_マウント": "eye",
+    "eye_SDカード": "eye",
+    "おむつCOLOR_パッケージ": "おむつCOLOR",
+    "おむつCOLOR_セット": "おむつCOLOR",
+    "その他連携": "その他"
+  };
+
+  // 選択された項目だけ取得
+  let selected = Object.keys(fields).filter(k => {
+    return document.getElementById(k).value !== "";
   });
 
   results.forEach(r => {
@@ -195,25 +214,24 @@ if (results.length === 0) {
 
     Object.keys(r.data).forEach(k => {
 
-      // 「検索名」かつ値あり
-      if (k.includes("検索名") && r.data[k]) {
+      // 検索名のみ対象
+      if (!k.includes("検索名") || !r.data[k]) return;
 
-        // この項目がどの条件に紐づくか判定
-        let isRelated = selectedKeys.some(sel => k.includes(sel));
+      let show = false;
 
-        // 共通系（サーバー・サービス系）は常に出す
-        let isCommon =
-          k.includes("サーバー") ||
-          k.includes("サービス") ||
-          k.includes("連携費用");
+      // 選択された項目に対応するものだけ表示
+      selected.forEach(sel => {
+        if (mapping[sel] && k.includes(mapping[sel])) {
+          show = true;
+        }
+      });
 
-        if (!isRelated && !isCommon) return;
+      if (!show) return;
 
-        let no = k.replace("検索名","製品番号");
+      let no = k.replace("検索名","製品番号");
 
-        html += `<b>${k}</b><br>${r.data[k]}<br>`;
-        html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
-      }
+      html += `<b>${k}</b><br>${r.data[k]}<br>`;
+      html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
 
     });
 
