@@ -6,11 +6,16 @@
 
 <style>
 body { font-family: Arial; padding: 10px; }
-label { display: block; margin-top: 10px; font-weight: bold; }
-select { width: 100%; padding: 6px; }
-button { margin-top: 15px; padding: 10px; width: 100%; }
-#result { margin-top: 20px; }
-.debug { border:2px solid red; padding:10px; margin-bottom:10px; }
+label { display:block; margin-top:10px; font-weight:bold; }
+select { width:100%; padding:6px; }
+button { margin-top:15px; padding:10px; width:100%; }
+#result { margin-top:20px; }
+.card {
+  border:1px solid #ccc;
+  padding:10px;
+  margin-bottom:10px;
+  border-radius:6px;
+}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -19,9 +24,10 @@ button { margin-top: 15px; padding: 10px; width: 100%; }
 <body>
 
 <h2>検索サポートツール</h2>
-
 <div id="form"></div>
+
 <button onclick="search()">検索</button>
+
 <div id="result"></div>
 
 <script>
@@ -73,9 +79,9 @@ function createForm() {
 createForm();
 
 // =========================
-// 総床数切替
+// 総床数カテゴリ 動的変更
 // =========================
-document.addEventListener("change", function(e) {
+document.addEventListener("change", e => {
   if (e.target.id === "クラウド構成orハイブリッド構成") {
 
     let val = e.target.value;
@@ -96,87 +102,90 @@ document.addEventListener("change", function(e) {
 });
 
 // =========================
-// 正規化
-// =========================
-function normalize(str) {
-  if (!str) return "";
-  return String(str)
-    .trim()
-    .replace(/\s+/g, "")
-    .replace(/パック/g, "")
-    .replace(/台/g, "")
-    .replace(/床/g, "")
-    .replace(/以上/g, "")
-    .replace(/未満/g, "")
-    .replace(/以下/g, "")
-    .replace(/-/g, "")
-    .replace(/～/g, "");
-}
-
-// =========================
-// 検索（デバッグ強制表示）
+// 検索処理（完全安定版）
 // =========================
 async function search() {
 
-  const res = await fetch("master.xlsx?v=" + new Date().getTime(), {
-    cache: "no-store"
-  });
-
+  const res = await fetch("master.xlsx?nocache=" + Date.now());
   const buf = await res.arrayBuffer();
   const wb = XLSX.read(buf);
 
-  let html = "";
+  let results = [];
 
   wb.SheetNames.forEach(name => {
 
     let data = XLSX.utils.sheet_to_json(wb.Sheets[name]);
 
-    data.forEach((row, index) => {
+    let filtered = data.filter(row => {
 
-      let ngList = [];
+      return Object.keys(fields).every(key => {
 
-      Object.keys(fields).forEach(key => {
+        let inputVal = document.getElementById(key).value;
 
-        let val = document.getElementById(key).value;
-        if (!val) return;
+        // 未選択は無視
+        if (!inputVal) return true;
 
-        let a = normalize(row[key]);
-        let b = normalize(val);
+        let excelVal = row[key];
 
-        if (!a.includes(b)) {
-          ngList.push(`${key} → 入力:${val} / Excel:${row[key]}`);
+        // Excelに列が無い → 無視
+        if (excelVal === undefined) return true;
+
+        // 空白も無視
+        if (excelVal === "") return true;
+
+        // 正規化
+        inputVal = inputVal.trim();
+        excelVal = String(excelVal).trim();
+
+        // 契約期間補正
+        if (key === "契約期間") {
+          if (inputVal === "1年") inputVal = "1年パック";
+          if (inputVal === "5年") inputVal = "5年パック";
         }
+
+        // OR条件対応
+        if (inputVal.includes("or")) {
+          return inputVal.split("or").some(v => excelVal.includes(v.trim()));
+        }
+
+        return excelVal.includes(inputVal);
       });
 
-      // ★ここ重要：全行表示
-      html += "<div class='debug'>";
+    });
 
-      html += `<b>シート：</b>${name}<br>`;
-      html += `<b>行：</b>${index + 2}<br><br>`;
-
-      if (ngList.length === 0) {
-        html += "<b style='color:green'>完全一致</b><br>";
-      } else {
-        html += "<b style='color:red'>不一致：</b><br>";
-        ngList.forEach(x => html += x + "<br>");
-      }
-
-      html += "<hr>";
-
-      Object.keys(row).forEach(k => {
-        if (k.includes("検索名") && row[k]) {
-          let no = k.replace("検索名","製品番号");
-          html += `<b>${row[k]}</b>（${row[no] || ""}）<br>`;
-        }
-      });
-
-      html += "</div>";
-
+    filtered.forEach(row => {
+      results.push({ sheet: name, data: row });
     });
 
   });
 
-  document.getElementById("result").innerHTML = html || "<b>データなし</b>";
+  // =========================
+  // 表示
+  // =========================
+  let html = "";
+
+  if (results.length === 0) {
+    html = "該当なし";
+  } else {
+
+    results.forEach(r => {
+
+      html += `<div class="card">`;
+      html += `<b>シート：</b>${r.sheet}<br><br>`;
+
+      Object.keys(r.data).forEach(k => {
+        if (k.includes("検索名") && r.data[k]) {
+          let no = k.replace("検索名","製品番号");
+          html += `<b>${k}</b><br>${r.data[k]}<br>`;
+          html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
+        }
+      });
+
+      html += `</div>`;
+    });
+  }
+
+  document.getElementById("result").innerHTML = html;
 }
 
 </script>
