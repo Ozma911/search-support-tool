@@ -98,23 +98,68 @@ async function search() {
 
   let results = [];
 
+  const sheetMap = {
+    "販売店の有無": "ALL",
+    "契約期間": "ALL",
+    "クラウド構成orハイブリッド構成": ["ハイブリッド構成サーバー特定マスタ"],
+    "総床数カテゴリ": ["ハイブリッド構成サーバー特定マスタ","【個室】トイレDIARYマスタ","【共用】トイレDIARYマスタ"],
+    "最大Viewer同時接続数": ["ハイブリッド構成サーバー特定マスタ"],
+    "眠りSCAN eyeの有無": ["ハイブリッド構成サーバー特定マスタ"],
+    "眠りSCAN導入台数": ["クラウド構成マスタ"],
+    "眠りSCAN購入形態": ["クラウド構成マスタ"],
+    "介護記録ソフト連携": ["介護記録ソフトマスタ"],
+    "ナースコール連携": ["ナースコールマスタ"],
+    "インカム連携": ["インカムマスタ"],
+    "環境センサー連携": ["環境センサマスタ"],
+    "トイレDIARY_個室か共用か": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
+    "トイレDIARY_便器ふち幅": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
+    "トイレDIARY_遠距離か近距離か": ["【共用】トイレDIARYマスタ"],
+    "トイレDIARY_ケーブル長": ["【共用】トイレDIARYマスタ"],
+    "トイレDIARY_介護記録ソフト連携": ["眠りCONNECT eyeマスタ","【共用】トイレDIARYマスタ"],
+    "eye_接続方式": ["眠りCONNECT eyeマスタ"],
+    "eye_マウント": ["眠りCONNECT eyeマスタ"],
+    "eye_SDカード": ["眠りCONNECT eyeマスタ"],
+    "おむつCOLOR_パッケージ": ["おむつCOLORマスタ"],
+    "おむつCOLOR_セット": ["おむつCOLORマスタ"],
+    "その他連携": ["その他連携マスタ"]
+  };
+
+  let selectedKeys = Object.keys(fields).filter(k => {
+    return document.getElementById(k).value !== "";
+  });
+
   wb.SheetNames.forEach(sheetName => {
 
     let data = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
 
     let filtered = data.filter(row => {
 
-      return Object.keys(fields).every(key => {
+      for (let key of selectedKeys) {
 
         const inputVal = document.getElementById(key).value;
-        if (!inputVal) return true;
-
         const excelVal = row[key];
-        if (!excelVal) return true;
 
-        return String(excelVal).trim() === inputVal.trim();
-      });
+        // シート対象外は即除外
+        const target = sheetMap[key];
+        if (target !== "ALL") {
+          if (!target.includes(sheetName)) return false;
+        }
 
+        // 未入力はスキップ
+        if (!inputVal) continue;
+
+        // Excel側に値なし → 不一致扱い
+        if (excelVal === undefined || excelVal === null || excelVal === "") {
+          return false;
+        }
+
+        // 完全一致
+        if (String(excelVal).trim() !== inputVal.trim()) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     if (filtered.length > 0) {
@@ -122,9 +167,7 @@ async function search() {
     }
   });
 
-  // =========================
-  // 表示
-  // =========================
+  // 表示（未選択は出さない）
   let html = "";
 
   if (results.length === 0) {
@@ -137,7 +180,6 @@ async function search() {
       html += `<b>シート：</b>${r.sheet}<br><br>`;
 
       Object.keys(r.data).forEach(k => {
-
         if (!k.includes("検索名")) return;
         if (!r.data[k]) return;
 
@@ -153,7 +195,7 @@ async function search() {
 
   document.getElementById("result").innerHTML = html;
 }
-
+  
 </script>
 
 </body>
