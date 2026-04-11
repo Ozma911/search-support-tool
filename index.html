@@ -102,7 +102,7 @@ document.addEventListener("change", e => {
 });
 
 // =========================
-// 検索処理（完全版）
+// 検索処理（完全安定版）
 // =========================
 async function search() {
 
@@ -116,6 +116,7 @@ async function search() {
     }
   }
 
+  // キャッシュ対策
   const res = await fetch("master.xlsx?nocache=" + Date.now());
   const buf = await res.arrayBuffer();
   const wb = XLSX.read(buf);
@@ -131,42 +132,43 @@ async function search() {
       return Object.keys(fields).every(key => {
 
         let inputVal = document.getElementById(key).value;
-
-        // 未選択は無視
         if (!inputVal) return true;
 
         let excelVal = row[key];
 
         // =========================
-        // 共通条件（厳密一致）
+        // 共通条件（完全一致）
         // =========================
         if (key === "販売店の有無" || key === "契約期間") {
 
-          if (!excelVal) return true;
+          if (!excelVal) return false;
 
-          let compareVal = inputVal;
+          let checkVal = inputVal;
 
+          // Excel側が「1年パック」などの場合の吸収
           if (key === "契約期間") {
-            if (inputVal === "1年") compareVal = "1年パック";
-            if (inputVal === "5年") compareVal = "5年パック";
+            if (inputVal === "1年") checkVal = "1年パック";
+            if (inputVal === "5年") checkVal = "5年パック";
           }
 
-          return String(excelVal).trim() === compareVal.trim();
+          return String(excelVal).trim() === checkVal.trim();
         }
 
         // =========================
-        // シートに列が無い → 無視
+        // Excelに列が無い → 無視
         // =========================
         if (excelVal === undefined) return true;
 
-        // 空は無視
+        // =========================
+        // Excelが空欄 → 無視（ここ重要）
+        // =========================
         if (excelVal === "") return true;
 
         // =========================
-        // 部分一致（＋スペース吸収）
+        // 部分一致
         // =========================
-        return String(excelVal).replace(/\s/g,"")
-               .includes(inputVal.replace(/\s/g,""));
+        return String(excelVal).includes(inputVal);
+
       });
 
     });
@@ -178,7 +180,7 @@ async function search() {
   });
 
   // =========================
-  // 表示
+  // 表示（空欄除外）
   // =========================
   let html = "";
 
@@ -188,29 +190,24 @@ async function search() {
 
     results.forEach(r => {
 
-      let block = "";
+      html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
+      html += `<b>シート：</b>${r.sheet}<br><br>`;
 
       Object.keys(r.data).forEach(k => {
 
+        // 検索名のみ表示（空欄除外）
         if (k.includes("検索名") && r.data[k]) {
 
           let no = k.replace("検索名","製品番号");
 
-          block += `<b>${k}</b><br>${r.data[k]}<br>`;
-          block += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
+          html += `<b>${k}</b><br>${r.data[k]}<br>`;
+          html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
         }
+
       });
 
-      // ★ 値があるものだけ表示
-      if (block !== "") {
-        html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
-        html += `<b>シート：</b>${r.sheet}<br><br>`;
-        html += block;
-        html += `</div>`;
-      }
+      html += `</div>`;
     });
-
-    if (html === "") html = "該当なし（製品なし）";
   }
 
   document.getElementById("result").innerHTML = html;
