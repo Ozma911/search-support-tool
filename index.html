@@ -56,13 +56,16 @@ const fields = {
 "その他連携": ["","DFree","介護Plus"]
 };
 
+
 // =========================
-// フォーム生成
+// ★フォーム生成（これが消えると全部消える）
 // =========================
 function createForm() {
+
   let html = "";
 
   Object.keys(fields).forEach(key => {
+
     html += `<label>${key}</label>`;
     html += `<select id="${key}">`;
 
@@ -76,8 +79,14 @@ function createForm() {
   document.getElementById("form").innerHTML = html;
 }
 
-createForm();
+// ★必ず実行
+window.onload = createForm;
 
+  createForm();
+
+// =========================
+// 検索（安全版・軽量）
+// =========================
 // =========================
 // 総床数カテゴリ 切替
 // =========================
