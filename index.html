@@ -92,8 +92,6 @@ document.addEventListener("DOMContentLoaded", createForm);
 // =========================
 async function search() {
 
-  alert("search動いた"); // ★必ず動作確認
-
   const res = await fetch("master.xlsx?v=" + Date.now());
   const buf = await res.arrayBuffer();
   const wb = XLSX.read(buf);
@@ -131,37 +129,44 @@ async function search() {
 
   for (let sheetName of wb.SheetNames) {
 
-    const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
+    // ★重要：headerを固定しない（ズレ防止）
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
+      header: 1,
       defval: ""
     });
 
-    // ★列名ズレ完全吸収
-    const data = raw.map(row => {
-      const obj = {};
-      Object.keys(row).forEach(k => {
-        obj[String(k).trim()] = String(row[k] ?? "").trim();
-      });
-      return obj;
-    });
+    if (!rows || rows.length < 2) continue;
 
-    const hit = data.find(row => {
+    // ★1行目＝ヘッダー
+    const headers = rows[0].map(h =>
+      String(h)
+        .replace(/\u00A0/g, "")
+        .replace(/\r/g, "")
+        .replace(/\n/g, "")
+        .trim()
+    );
+
+    const dataRows = rows.slice(1);
+
+    const hit = dataRows.find(row => {
 
       for (let key of selectedKeys) {
 
         const inputVal = document.getElementById(key).value;
-        const targetSheets = sheetMap[key];
 
-        // シート対象外は除外
+        const targetSheets = sheetMap[key];
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
           return false;
         }
 
-        const excelVal = row[key];
+        // ★ヘッダーから列番号取得
+        const colIndex = headers.indexOf(key);
+        if (colIndex === -1) continue;
 
-        // 空欄は無視
+        const excelVal = String(row[colIndex] ?? "").trim();
+
         if (!excelVal) continue;
 
-        // 不一致はNG
         if (excelVal !== inputVal) {
           return false;
         }
@@ -186,15 +191,7 @@ async function search() {
       html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
       html += `<b>シート：</b>${r.sheet}<br><br>`;
 
-      Object.keys(r.data).forEach(k => {
-        if (!k.includes("検索名")) return;
-        if (!r.data[k]) return;
-
-        let no = k.replace("検索名", "製品番号");
-
-        html += `<b>${k}</b><br>${r.data[k]}<br>`;
-        html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
-      });
+      html += `該当データあり（行一致）`;
 
       html += `</div>`;
     });
