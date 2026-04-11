@@ -98,6 +98,38 @@ async function search() {
 
   let results = [];
 
+  // =========================
+  // 列番号固定マップ
+  // =========================
+  const columnIndexMap = {
+    "販売店の有無": 0,
+    "クラウド構成orハイブリッド構成": 1,
+    "総床数カテゴリ": 2,
+    "最大Viewer同時接続数": 3,
+    "契約期間": 4,
+    "眠りSCAN eyeの有無": 5,
+    "眠りSCAN導入台数": 6,
+    "眠りSCAN購入形態": 7,
+    "介護記録ソフト連携": 8,
+    "ナースコール連携": 9,
+    "インカム連携": 10,
+    "環境センサー連携": 11,
+    "トイレDIARY_個室か共用か": 12,
+    "トイレDIARY_便器ふち幅": 13,
+    "トイレDIARY_遠距離か近距離か": 14,
+    "トイレDIARY_ケーブル長": 15,
+    "トイレDIARY_介護記録ソフト連携": 16,
+    "eye_接続方式": 17,
+    "eye_マウント": 18,
+    "eye_SDカード": 19,
+    "おむつCOLOR_パッケージ": 20,
+    "おむつCOLOR_セット": 21,
+    "その他連携": 22
+  };
+
+  // =========================
+  // シート対象マップ
+  // =========================
   const sheetMap = {
     "販売店の有無": "ALL",
     "契約期間": "ALL",
@@ -124,10 +156,15 @@ async function search() {
     "その他連携": ["その他連携マスタ"]
   };
 
-  // ★ここが重要：空は完全除外
-  const selectedKeys = Object.keys(fields)
+  // =========================
+  // 選択された項目だけ抽出（超重要）
+  // =========================
+  const selectedKeys = Object.keys(columnIndexMap)
     .filter(k => document.getElementById(k).value !== "");
 
+  // =========================
+  // 検索
+  // =========================
   for (let sheetName of wb.SheetNames) {
 
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
@@ -137,23 +174,23 @@ async function search() {
 
     if (!rows || rows.length < 2) continue;
 
-    const headers = rows[0].map(h => String(h).trim());
     const dataRows = rows.slice(1);
 
-    const hitRow = dataRows.find(row => {
+    const hit = dataRows.find(row => {
 
-      // ★条件1個でもNGなら即終了（AND条件）
       for (let key of selectedKeys) {
 
         const inputVal = document.getElementById(key).value;
         const targetSheets = sheetMap[key];
 
+        // シート対象外はスキップ
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
           return false;
         }
 
-        const colIndex = headers.indexOf(key);
-        if (colIndex === -1) return false;
+        const colIndex = columnIndexMap[key];
+
+        if (colIndex === undefined) return false;
 
         const excelVal = String(row[colIndex] ?? "").trim();
 
@@ -165,26 +202,16 @@ async function search() {
       return true;
     });
 
-    if (hitRow) {
-      results.push({ sheet: sheetName, row: hitRow });
+    if (hit) {
+      results.push({ sheet: sheetName });
     }
   }
 
-  let html = "";
-
-  if (results.length === 0) {
-    html = "該当なし";
-  } else {
-
-    results.forEach(r => {
-      html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
-      html += `<b>シート：</b>${r.sheet}<br>`;
-      html += `一致データあり`;
-      html += `</div>`;
-    });
-  }
-
-  document.getElementById("result").innerHTML = html;
+  // =========================
+  // 表示
+  // =========================
+  document.getElementById("result").innerHTML =
+    results.length ? "ヒットあり" : "該当なし";
 }
   
 </script>
