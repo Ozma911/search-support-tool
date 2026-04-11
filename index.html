@@ -133,7 +133,7 @@ async function search() {
 
     let hit = data.find(row => {
 
-      let score = 0;
+      let matched = 0;
 
       for (let key of selectedKeys) {
 
@@ -142,23 +142,28 @@ async function search() {
 
         const targetSheets = sheetMap[key];
 
+        // シート対象外は無視（落とさない）
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
-          return false;
+          continue;
         }
 
         const excelVal = row[key];
 
-        // 列が無い → スキップ（重要）
-        if (!excelVal) continue;
+        // 列なし or 空白 → 評価しない（超重要）
+        if (excelVal === undefined || excelVal === null || excelVal === "") {
+          continue;
+        }
 
-        // 完全一致 or 部分一致で加点
-        if (String(excelVal).includes(inputVal)) {
-          score++;
+        // 一致のみカウント
+        if (String(excelVal).trim().includes(inputVal.trim())) {
+          matched++;
+        } else {
+          return false; // 不一致なら即NG
         }
       }
 
-      // ★1つでもヒットしていればOK
-      return score > 0;
+      // 1つでも条件が効いていればOK
+      return matched > 0;
     });
 
     if (hit) {
@@ -178,6 +183,7 @@ async function search() {
       html += `<b>シート：</b>${r.sheet}<br><br>`;
 
       Object.keys(r.data).forEach(k => {
+
         if (!k.includes("検索名")) return;
         if (!r.data[k]) return;
 
