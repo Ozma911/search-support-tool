@@ -137,40 +137,84 @@ async function search() {
   });
 
 // =========================
-// 表示（完全ロールバック版）
+// 検索処理（ヒット優先・安定版）
 // =========================
-let html = "";
+async function search() {
 
-if (results.length === 0) {
-  html = "該当なし";
-} else {
+  const res = await fetch("master.xlsx?nocache=" + Date.now());
+  const buf = await res.arrayBuffer();
+  const wb = XLSX.read(buf);
 
-  results.forEach(r => {
+  let results = [];
 
-    html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
+  wb.SheetNames.forEach(name => {
 
-    html += `<b>シート：</b>${r.sheet}<br><br>`;
+    let data = XLSX.utils.sheet_to_json(wb.Sheets[name]);
 
-    Object.keys(r.data).forEach(k => {
+    let filtered = data.filter(row => {
 
-      // 検索名のみ表示
-      if (k.includes("検索名") && r.data[k]) {
+      return Object.keys(fields).every(key => {
 
-        let no = k.replace("検索名","製品番号");
+        let inputVal = document.getElementById(key).value;
 
-        html += `<b>${k}</b><br>${r.data[k]}<br>`;
-        html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
-      }
+        // 未選択は無視
+        if (!inputVal) return true;
+
+        let excelVal = row[key];
+
+        // Excelに列が無い → 無視
+        if (excelVal === undefined) return true;
+
+        // 空欄 → 無視
+        if (excelVal === "") return true;
+
+        // =========================
+        // ★ここをゆるくするのが重要
+        // =========================
+        return String(excelVal).includes(inputVal);
+      });
 
     });
 
-    html += `</div>`;
+    filtered.forEach(r => {
+      results.push({ sheet: name, data: r });
+    });
+
   });
-}
 
-document.getElementById("result").innerHTML = html;
-}
+  // デバッグ（件数確認）
+  console.log("ヒット件数:", results.length);
 
+  // =========================
+  // 表示（シンプル）
+  // =========================
+  let html = "";
+
+  if (results.length === 0) {
+    html = "該当なし（※条件が厳しすぎ or マスタ不一致）";
+  } else {
+
+    results.forEach(r => {
+
+      html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
+      html += `<b>シート：</b>${r.sheet}<br><br>`;
+
+      Object.keys(r.data).forEach(k => {
+        if (k.includes("検索名") && r.data[k]) {
+
+          let no = k.replace("検索名","製品番号");
+
+          html += `<b>${k}</b><br>${r.data[k]}<br>`;
+          html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
+        }
+      });
+
+      html += `</div>`;
+    });
+  }
+
+  document.getElementById("result").innerHTML = html;
+}
 </script>
 
 </body>
