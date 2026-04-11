@@ -125,10 +125,7 @@ async function search() {
   };
 
   const selectedKeys = Object.keys(fields)
-    .filter(k => {
-      const v = document.getElementById(k).value;
-      return v !== null && v !== "";
-    });
+    .filter(k => document.getElementById(k).value !== "");
 
   for (let sheetName of wb.SheetNames) {
 
@@ -141,19 +138,19 @@ async function search() {
       for (let key of selectedKeys) {
 
         const inputVal = document.getElementById(key).value;
+        const excelVal = String(row[key] || "").trim();
 
         const targetSheets = sheetMap[key];
 
+        // シート違いは除外
         if (targetSheets !== "ALL" && !targetSheets.includes(sheetName)) {
           return false;
         }
 
-        const excelVal = String(row[key] || "").trim();
-
-        // 列がない・空白 → 無視（判定しない）
+        // 空白は無視（判定しない）
         if (!excelVal) continue;
 
-        // 不一致なら即NG
+        // 一致しないなら即NG
         if (excelVal !== inputVal) {
           return false;
         }
