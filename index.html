@@ -136,49 +136,39 @@ async function search() {
 
   });
 
-  // =========================
-  // 表示
-  // =========================
-  let html = "";
+// =========================
+// 表示（完全ロールバック版）
+// =========================
+let html = "";
 
-  if (results.length === 0) {
-    html = "該当なし";
-  } else {
+if (results.length === 0) {
+  html = "該当なし";
+} else {
 
-    let selected = Object.keys(fields).filter(k =>
-      document.getElementById(k).value !== ""
-    );
+  results.forEach(r => {
 
-    results.forEach(r => {
+    html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
 
-      let block = "";
+    html += `<b>シート：</b>${r.sheet}<br><br>`;
 
-      Object.keys(r.data).forEach(k => {
+    Object.keys(r.data).forEach(k => {
 
-        if (!k.includes("検索名") || !r.data[k]) return;
-
-        let show = selected.some(sel => k.includes(sel));
-
-        if (!show) return;
+      // 検索名のみ表示
+      if (k.includes("検索名") && r.data[k]) {
 
         let no = k.replace("検索名","製品番号");
 
-        block += `<b>${k}</b><br>${r.data[k]}<br>`;
-        block += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
-      });
-
-      if (block !== "") {
-        html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
-        html += `<b>シート：</b>${r.sheet}<br><br>`;
-        html += block;
-        html += `</div>`;
+        html += `<b>${k}</b><br>${r.data[k]}<br>`;
+        html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
       }
 
     });
 
-  }
+    html += `</div>`;
+  });
+}
 
-  document.getElementById("result").innerHTML = html;
+document.getElementById("result").innerHTML = html;
 }
 
 </script>
