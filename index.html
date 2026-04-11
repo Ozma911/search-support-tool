@@ -102,7 +102,7 @@ document.addEventListener("change", e => {
 });
 
 // =========================
-// 検索処理（最終版）
+// 検索処理（完全版）
 // =========================
 async function search() {
 
@@ -131,6 +131,8 @@ async function search() {
       return Object.keys(fields).every(key => {
 
         let inputVal = document.getElementById(key).value;
+
+        // 未選択は無視
         if (!inputVal) return true;
 
         let excelVal = row[key];
@@ -142,12 +144,14 @@ async function search() {
 
           if (!excelVal) return true;
 
+          let compareVal = inputVal;
+
           if (key === "契約期間") {
-            if (inputVal === "1年") inputVal = "1年パック";
-            if (inputVal === "5年") inputVal = "5年パック";
+            if (inputVal === "1年") compareVal = "1年パック";
+            if (inputVal === "5年") compareVal = "5年パック";
           }
 
-          return String(excelVal).trim() === inputVal.trim();
+          return String(excelVal).trim() === compareVal.trim();
         }
 
         // =========================
@@ -155,12 +159,14 @@ async function search() {
         // =========================
         if (excelVal === undefined) return true;
 
+        // 空は無視
         if (excelVal === "") return true;
 
         // =========================
-        // 部分一致
+        // 部分一致（＋スペース吸収）
         // =========================
-        return String(excelVal).includes(inputVal);
+        return String(excelVal).replace(/\s/g,"")
+               .includes(inputVal.replace(/\s/g,""));
       });
 
     });
@@ -182,24 +188,34 @@ async function search() {
 
     results.forEach(r => {
 
-      html += `<div class="card">`;
-      html += `<b>シート：</b>${r.sheet}<br><br>`;
+      let block = "";
 
       Object.keys(r.data).forEach(k => {
+
         if (k.includes("検索名") && r.data[k]) {
+
           let no = k.replace("検索名","製品番号");
-          html += `<b>${k}</b><br>${r.data[k]}<br>`;
-          html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
+
+          block += `<b>${k}</b><br>${r.data[k]}<br>`;
+          block += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
         }
       });
 
-      html += `</div>`;
+      // ★ 値があるものだけ表示
+      if (block !== "") {
+        html += `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;">`;
+        html += `<b>シート：</b>${r.sheet}<br><br>`;
+        html += block;
+        html += `</div>`;
+      }
     });
+
+    if (html === "") html = "該当なし（製品なし）";
   }
 
   document.getElementById("result").innerHTML = html;
 }
-
+  
 </script>
 
 </body>
