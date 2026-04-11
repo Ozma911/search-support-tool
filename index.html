@@ -102,13 +102,12 @@ document.addEventListener("change", e => {
 });
 
 // =========================
-// 検索処理（完全安定版）
+// 検索処理（完全最終版：ゆる一致）
 // =========================
 async function search() {
 
   const required = ["販売店の有無", "契約期間"];
 
-  // 必須チェック
   for (let r of required) {
     if (!document.getElementById(r).value) {
       alert(r + "は必須です");
@@ -116,12 +115,26 @@ async function search() {
     }
   }
 
-  // キャッシュ対策
   const res = await fetch("master.xlsx?nocache=" + Date.now());
   const buf = await res.arrayBuffer();
   const wb = XLSX.read(buf);
 
   let results = [];
+
+  // =========================
+  // 正規化関数（これがキモ）
+  // =========================
+  function normalize(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/\s/g, "")          // スペース削除
+      .replace(/（/g, "(")
+      .replace(/）/g, ")")
+      .replace(/パック/g, "")
+      .replace(/台/g, "")
+      .replace(/mm/g, "")
+      .toLowerCase();
+  }
 
   wb.SheetNames.forEach(name => {
 
@@ -136,38 +149,20 @@ async function search() {
 
         let excelVal = row[key];
 
-        // =========================
-        // 共通条件（完全一致）
-        // =========================
+        // 共通項目（必須）
         if (key === "販売店の有無" || key === "契約期間") {
-
           if (!excelVal) return false;
-
-          let checkVal = inputVal;
-
-          // Excel側が「1年パック」などの場合の吸収
-          if (key === "契約期間") {
-            if (inputVal === "1年") checkVal = "1年パック";
-            if (inputVal === "5年") checkVal = "5年パック";
-          }
-
-          return String(excelVal).trim() === checkVal.trim();
+          return normalize(excelVal) === normalize(inputVal);
         }
 
-        // =========================
-        // Excelに列が無い → 無視
-        // =========================
+        // 列が無い → 無視
         if (excelVal === undefined) return true;
 
-        // =========================
-        // Excelが空欄 → 無視（ここ重要）
-        // =========================
+        // 空欄 → 無視
         if (excelVal === "") return true;
 
-        // =========================
-        // 部分一致
-        // =========================
-        return String(excelVal).includes(inputVal);
+        // ゆる一致（ここが最強）
+        return normalize(excelVal).includes(normalize(inputVal));
 
       });
 
@@ -180,12 +175,12 @@ async function search() {
   });
 
   // =========================
-  // 表示（空欄除外）
+  // 表示
   // =========================
   let html = "";
 
   if (results.length === 0) {
-    html = "該当なし";
+    html = "該当なし（条件が厳しすぎ or マスタ不一致）";
   } else {
 
     results.forEach(r => {
@@ -195,7 +190,6 @@ async function search() {
 
       Object.keys(r.data).forEach(k => {
 
-        // 検索名のみ表示（空欄除外）
         if (k.includes("検索名") && r.data[k]) {
 
           let no = k.replace("検索名","製品番号");
