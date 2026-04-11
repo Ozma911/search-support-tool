@@ -102,9 +102,19 @@ document.addEventListener("change", e => {
 });
 
 // =========================
-// 検索処理（完全安定版）
+// 検索処理（最終版）
 // =========================
 async function search() {
+
+  const required = ["販売店の有無", "契約期間"];
+
+  // 必須チェック
+  for (let r of required) {
+    if (!document.getElementById(r).value) {
+      alert(r + "は必須です");
+      return;
+    }
+  }
 
   const res = await fetch("master.xlsx?nocache=" + Date.now());
   const buf = await res.arrayBuffer();
@@ -121,40 +131,42 @@ async function search() {
       return Object.keys(fields).every(key => {
 
         let inputVal = document.getElementById(key).value;
-
-        // 未選択は無視
         if (!inputVal) return true;
 
         let excelVal = row[key];
 
-        // Excelに列が無い → 無視
+        // =========================
+        // 共通条件（厳密一致）
+        // =========================
+        if (key === "販売店の有無" || key === "契約期間") {
+
+          if (!excelVal) return true;
+
+          if (key === "契約期間") {
+            if (inputVal === "1年") inputVal = "1年パック";
+            if (inputVal === "5年") inputVal = "5年パック";
+          }
+
+          return String(excelVal).trim() === inputVal.trim();
+        }
+
+        // =========================
+        // シートに列が無い → 無視
+        // =========================
         if (excelVal === undefined) return true;
 
-        // 空白も無視
         if (excelVal === "") return true;
 
-        // 正規化
-        inputVal = inputVal.trim();
-        excelVal = String(excelVal).trim();
-
-        // 契約期間補正
-        if (key === "契約期間") {
-          if (inputVal === "1年") inputVal = "1年パック";
-          if (inputVal === "5年") inputVal = "5年パック";
-        }
-
-        // OR条件対応
-        if (inputVal.includes("or")) {
-          return inputVal.split("or").some(v => excelVal.includes(v.trim()));
-        }
-
-        return excelVal.includes(inputVal);
+        // =========================
+        // 部分一致
+        // =========================
+        return String(excelVal).includes(inputVal);
       });
 
     });
 
-    filtered.forEach(row => {
-      results.push({ sheet: name, data: row });
+    filtered.forEach(r => {
+      results.push({ sheet: name, data: r });
     });
 
   });
