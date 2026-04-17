@@ -2,18 +2,18 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>検索サポートツール</title>
+<title>検索サポートツール（完成版）</title>
 
 <style>
 body { font-family: Arial; padding: 10px; }
-label { display: block; margin-top: 10px; font-weight: bold; }
-select { width: 100%; padding: 6px; }
-button { margin-top: 15px; padding: 10px; width: 100%; }
-#result { margin-top: 20px; }
-.card { border:1px solid #ccc;padding:10px;margin-bottom:10px; }
+label { display:block; margin-top:10px; font-weight:bold; }
+select, input { width:100%; padding:6px; }
+button { margin-top:15px; padding:10px; width:100%; }
+.card { border:1px solid #ccc; padding:10px; margin-bottom:10px; }
+.warn { color:red; font-weight:bold; }
 </style>
-
 </head>
+
 <body>
 
 <h2>検索サポートツール</h2>
@@ -21,14 +21,21 @@ button { margin-top: 15px; padding: 10px; width: 100%; }
 <div id="form"></div>
 <button onclick="search()">検索</button>
 
+<button id="textBtn">TEXT出力</button>
+<textarea id="outputText" rows="12"></textarea>
+<button onclick="copyText()">コピー</button>
+
 <div id="result"></div>
 
 <script>
 
-// =========================
-// 項目定義（←これはそのまま採用）
-// =========================
+
+//////////////////////////////////////////////////////
+// ① フォーム定義
+//////////////////////////////////////////////////////
 const fields = {
+"施設名": [""],  // ← 手入力用（最上段に追加）
+
 "販売店の有無": ["", "有", "無"],
 
 "クラウド構成orハイブリッド構成": ["", "クラウド構成", "ハイブリッド構成"],
@@ -45,7 +52,7 @@ const fields = {
 
 "眠りSCAN eyeの有無": ["", "有", "無"],
 
-"眠りSCAN導入台数": ["", "18床以下", "19床以上"],
+"眠りSCAN導入台数": ["", "18台以下", "19台以上"],
 
 "眠りSCAN購入形態": ["", "購入", "レンタル"],
 
@@ -143,12 +150,10 @@ const fields = {
 ]
 };
 
-// =========================
-// ★ここにJSON貼る
-// =========================
-// =========================
-// ★ここにJSON貼り付け
-// =========================
+
+//////////////////////////////////////////////////////
+// ② 仮JSON（抜粋）
+//////////////////////////////////////////////////////
 const masterData = {
   "ハイブリッド構成サーバー特定マスタ": [
     {
@@ -11882,95 +11887,163 @@ const masterData = {
     // ←ここに全部貼る
   ]
 };
+//////////////////////////////////////////////////////
+// ③ ルール
+//////////////////////////////////////////////////////
+const sheetRules = {
 
+  "ハイブリッド構成サーバー特定マスタ": [
+    "販売店の有無",
+    "クラウド構成orハイブリッド構成",
+    "総床数カテゴリ",
+    "最大Viewer同時接続数",
+    "契約期間",
+    "眠りSCAN eyeの有無"
+  ],
 
-// =========================
-// フォーム生成
-// =========================
+  "クラウド構成マスタ": [
+    "販売店の有無",
+    "クラウド構成orハイブリッド構成",
+    "契約期間",
+    "眠りSCAN導入台数",
+    "眠りSCAN購入形態"
+  ],
+
+  "介護記録ソフトマスタ": [
+    "販売店の有無",
+    "契約期間",
+    "介護記録ソフト連携"
+  ],
+
+  "ナースコールマスタ": [
+    "販売店の有無",
+    "契約期間",
+    "ナースコール連携"
+  ],
+
+  "眠りCONNECT eyeマスタ": [
+    "販売店の有無",
+    "契約期間",
+    "eye_接続方式",
+    "eye_マウント",
+    "eye_SDカード"
+  ],
+
+  "【個室】トイレDIARYマスタ": [
+    "販売店の有無",
+    "総床数カテゴリ",
+    "契約期間",
+    "トイレDIARY_個室か共用か",
+    "トイレDIARY_便器ふち幅",
+    "トイレDIARY_介護記録ソフト連携"
+  ],
+
+  "【共用】トイレDIARYマスタ": [
+    "販売店の有無",
+    "総床数カテゴリ",
+    "契約期間",
+    "トイレDIARY_個室か共用か",
+    "トイレDIARY_便器ふち幅",
+    "トイレDIARY_遠距離か近距離か",
+    "トイレDIARY_ケーブル長",
+    "トイレDIARY_介護記録ソフト連携"
+  ],
+
+  "環境センサマスタ": [
+    "販売店の有無",
+    "契約期間",
+    "環境センサー連携"
+  ],
+
+  "おむつCOLORマスタ": [
+    "販売店の有無",
+    "契約期間",
+    "おむつCOLOR_パッケージ",
+    "おむつCOLOR_セット"
+  ],
+
+  "その他連携マスタ": [
+    "販売店の有無",
+    "契約期間",
+    "その他連携"
+  ]
+};
+
+//////////////////////////////////////////////////////
+// ④ フォーム生成
+//////////////////////////////////////////////////////
 function createForm() {
-
+  const form = document.getElementById("form");
   let html = "";
 
-  Object.keys(fields).forEach(key => {
+  Object.keys(fields).forEach(k => {
 
-    html += `<label>${key}</label>`;
-    html += `<select id="${key}">`;
+    html += `<label>${k}</label>`;
 
-    fields[key].forEach(v => {
+    // 施設名だけ手入力
+    if (k === "施設名") {
+      html += `<input id="${k}" type="text">`;
+      return;
+    }
+
+    html += `<select id="${k}">`;
+    fields[k].forEach(v => {
       html += `<option value="${v}">${v || "未選択"}</option>`;
     });
-
     html += `</select>`;
   });
 
-  document.getElementById("form").innerHTML = html;
+  form.innerHTML = html;
 }
 
-// =========================
-// イベント設定（総床数連動）
-// =========================
-function setupEvents() {
+//////////////////////////////////////////////////////
+// ⑤ TEXT出力
+//////////////////////////////////////////////////////
+document.getElementById("textBtn").addEventListener("click", () => {
 
-  document.getElementById("クラウド構成orハイブリッド構成")
-    .addEventListener("change", function() {
+  const facilityName = document.getElementById("施設名")?.value || "（未入力）";
 
-      let val = this.value;
-      let bed = document.getElementById("総床数カテゴリ");
+  const selected = {};
+  Object.keys(fields).forEach(k => {
+    const el = document.getElementById(k);
+    if (!el) return;
+    if (el.value) selected[k] = el.value;
+  });
 
-      let options = [""];
-
-      if (val === "ハイブリッド構成") {
-        options = ["", "18床以下","19床以上120床以下","121床以上200床以下","201床以上"];
-      } else if (val === "クラウド構成") {
-        options = ["", "18床以下","19床以上"];
-      }
-
-      bed.innerHTML = options.map(v =>
-        `<option value="${v}">${v || "未選択"}</option>`
-      ).join("");
-    });
-
-  // 初期反映
-  document.getElementById("クラウド構成orハイブリッド構成")
-    .dispatchEvent(new Event("change"));
-}
-
-// =========================
-// 検索
-// =========================
-function search() {
-
-  // 必須チェック
-  const required = ["販売店の有無", "契約期間"];
-
-  for (let r of required) {
-    if (!document.getElementById(r).value) {
-      alert(r + "は必須です");
-      return;
-    }
-  }
-
-  let selectedKeys = Object.keys(fields)
-    .filter(k => document.getElementById(k).value !== "");
-
-  let results = [];
+  let resultText = "";
 
   for (let sheet in masterData) {
 
-    let rows = masterData[sheet];
+    const rules = sheetRules[sheet] || [];
+
+    //////////////////////////////////////
+    // ★ 必須未入力ならスキップ
+    //////////////////////////////////////
+    let skip = false;
+    for (let k of rules) {
+      if (!selected[k]) {
+        skip = true;
+        break;
+      }
+    }
+    if (skip) continue;
+
+    //////////////////////////////////////
+    // ★ マッチ判定（searchと完全一致）
+    //////////////////////////////////////
+    const rows = masterData[sheet];
     let hit = null;
 
     for (let row of rows) {
 
       let ok = true;
 
-      for (let key of selectedKeys) {
+      for (let k of rules) {
 
-        let inputVal = document.getElementById(key).value;
+        const sel = selected[k];
+        const val = row[k];
 
-        if (!(key in row)) continue;
-
-        if (String(row[key]).trim() !== inputVal) {
+        if (!val || String(val).trim() !== String(sel).trim()) {
           ok = false;
           break;
         }
@@ -11982,47 +12055,293 @@ function search() {
       }
     }
 
+    //////////////////////////////////////
+    // 出力整形
+    //////////////////////////////////////
+    resultText += "--------------------------------------\n";
+    resultText += sheet + "\n\n";
+
     if (hit) {
-      results.push({ sheet, data: hit });
+
+      Object.keys(hit).forEach(k => {
+        if (fields[k]) return; // 条件除外
+        resultText += k + "\n" + hit[k] + "\n\n";
+      });
+
+    } else {
+      resultText += "該当なし\n\n";
     }
   }
 
-  // 表示
-  let html = "";
+  const text =
+`件名：眠りConnect 見積作成のお願い
 
-  if (results.length === 0) {
-    html = "該当なし";
-  } else {
+●●さん
 
-    results.forEach(r => {
+お疲れ様です、●●です。
 
-      html += `<div class="card">`;
-      html += `<b>シート：</b>${r.sheet}<br><br>`;
+下記案件について、眠りConnectの見積書作成をお願いできますでしょうか。
 
-      Object.keys(r.data).forEach(k => {
+◇案件情報
+・施設名：${facilityName}
 
-        if (k.includes("検索名")) {
+◇以下の内容を基に作成お願いいたします。
 
-          let no = k.replace("検索名","製品番号");
+${resultText}
 
-          html += `<b>${k}</b><br>${r.data[k]}<br>`;
-          html += `<b>${no}</b><br>${r.data[no] || ""}<br><br>`;
-        }
+お手数ですが、●月●日までにご対応いただけますと助かります。
+不明点等ございましたらご連絡ください。
+
+ご確認よろしくお願いいたします。`;
+
+  document.getElementById("outputText").value = text;
+});
+
+
+//////////////////////////////////////////////////////
+// ⑥ コピー
+//////////////////////////////////////////////////////
+function copyText() {
+  const text = document.getElementById("outputText").value;
+  navigator.clipboard.writeText(text);
+}
+
+//////////////////////////////////////////////////////
+// ⑦ イベント（ここが重要）
+//////////////////////////////////////////////////////
+function setupEvents() {
+
+  //////////////////////////////////////
+  // ① 既存：構成 → 床数制御
+  //////////////////////////////////////
+  const config = document.getElementById("クラウド構成orハイブリッド構成");
+  const bed = document.getElementById("総床数カテゴリ");
+
+  config.addEventListener("change", function () {
+
+    let val = this.value;
+    let options = [""];
+
+    if (val === "ハイブリッド構成") {
+      options = ["","18床以下","19床以上120床以下","121床以上200床以下","201床以上"];
+    }
+
+    if (val === "クラウド構成") {
+      options = ["","18床以下","19床以上"];
+    }
+
+    bed.innerHTML = options
+      .map(v => `<option value="${v}">${v || "未選択"}</option>`)
+      .join("");
+  });
+
+  //////////////////////////////////////
+  // ② 既存：eye制御
+  //////////////////////////////////////
+  const eye = document.getElementById("眠りSCAN eyeの有無");
+  const eyeItems = ["eye_接続方式","eye_マウント","eye_SDカード"];
+
+  eye.addEventListener("change", function () {
+
+    const on = this.value === "有";
+
+    eyeItems.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      el.disabled = !on;
+      if (!on) el.value = "";
+    });
+  });
+
+  //////////////////////////////////////
+  // ③ トイレDIARY制御（修正版）
+  //////////////////////////////////////
+  const toiletType = document.getElementById("トイレDIARY_個室か共用か");
+
+  const commonItems = [
+    "トイレDIARY_遠距離か近距離か",
+    "トイレDIARY_ケーブル長"
+  ];
+
+  const careItem = "トイレDIARY_介護記録ソフト連携";
+
+  toiletType.addEventListener("change", function () {
+
+    const val = this.value;
+
+    // 一旦すべてON
+    [...commonItems, careItem].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.disabled = false;
+    });
+
+    if (val === "共用") {
+      // 共用 → 介護連携だけOFF
+      const el = document.getElementById(careItem);
+      if (el) {
+        el.disabled = true;
+        el.value = "";
+      }
+    }
+
+    if (val === "個室用") {
+      // 個室 → 遠距離・ケーブルだけOFF（←ここ修正ポイント）
+      commonItems.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = true;
+        el.value = "";
       });
 
-      html += `</div>`;
+      // ★介護連携はONのまま（←重要）
+    }
+
+  });
+
+  //////////////////////////////////////
+  // ④ 初期反映
+  //////////////////////////////////////
+  config.dispatchEvent(new Event("change"));
+  eye.dispatchEvent(new Event("change"));
+  toiletType.dispatchEvent(new Event("change"));
+}
+
+
+//////////////////////////////////////////////////////
+// ⑧ マスタ選択（安定版）
+//////////////////////////////////////////////////////
+function selectBestMaster(selected) {
+
+  for (let sheet in masterData) {
+
+    const rows = masterData[sheet];
+
+    const hit = rows.find(row => {
+
+      for (let k in selected) {
+
+        if (!row[k]) return false;
+
+        if (String(row[k]).trim() !== String(selected[k]).trim()) {
+          return false;
+        }
+      }
+
+      return true;
     });
+
+    if (hit) {
+      return { sheet, row: hit };
+    }
+  }
+
+  return null;
+}
+
+//////////////////////////////////////////////////////
+// ⑨ 検索
+//////////////////////////////////////////////////////
+function search() {
+
+  const selected = {};
+
+  Object.keys(fields).forEach(k => {
+    const v = document.getElementById(k).value;
+    if (v) selected[k] = v;
+  });
+
+  let html = "";
+
+  for (let sheet in masterData) {
+
+    const rules = sheetRules[sheet] || [];
+
+    //////////////////////////////////////
+    // ★ 必須未入力ならスキップ
+    //////////////////////////////////////
+    let skip = false;
+    for (let k of rules) {
+      if (!selected[k]) {
+        skip = true;
+        break;
+      }
+    }
+    if (skip) continue;
+
+    //////////////////////////////////////
+    // ★ マッチ判定
+    //////////////////////////////////////
+    const rows = masterData[sheet];
+
+    let hit = null;
+    let reasons = [];
+
+    for (let row of rows) {
+
+      let ok = true;
+      reasons = [];
+
+      for (let k of rules) {
+
+        const sel = selected[k];
+        const val = row[k];
+
+        if (!val) {
+          ok = false;
+          reasons.push(`${k} がマスタ未定義`);
+          continue;
+        }
+
+        if (String(val).trim() !== String(sel).trim()) {
+          ok = false;
+          reasons.push(`${k} が不一致`);
+        }
+      }
+
+      if (ok) {
+        hit = row;
+        break;
+      }
+    }
+
+    //////////////////////////////////////
+    // 表示
+    //////////////////////////////////////
+    html += `<div class="card">`;
+    html += `<b>${sheet}</b><br><br>`;
+
+    if (hit) {
+
+      Object.keys(hit).forEach(k => {
+        html += `<b>${k}</b><br>${hit[k]}<br><br>`;
+      });
+
+    } else {
+
+      html += `<span class="warn">該当なし</span><br><br>`;
+      html += `<b>原因：</b><br>`;
+
+      if (reasons.length === 0) {
+        html += "条件不足<br>";
+      } else {
+        reasons.forEach(r => html += `・${r}<br>`);
+      }
+    }
+
+    html += `</div>`;
   }
 
   document.getElementById("result").innerHTML = html;
 }
 
-// =========================
-// 初期化
-// =========================
-window.onload = function() {
+//////////////////////////////////////////////////////
+// ⑪ 初期化（重要）
+//////////////////////////////////////////////////////
+window.onload = function () {
   createForm();
-  setupEvents();
+  setupEvents(); // ←これ必須
 };
 
 </script>
