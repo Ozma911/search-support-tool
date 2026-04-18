@@ -43,122 +43,73 @@ button { margin-top:10px; padding:10px; width:100%; }
 // ① フォーム定義
 //////////////////////////////////////////////////////
 const fields = {
-"施設名": [""],  // ← 手入力用（最上段に追加）
-
+"施設名": [""],
 "販売店の有無": ["", "有", "無"],
-
 "クラウド構成orハイブリッド構成": ["", "クラウド構成", "ハイブリッド構成"],
-
-"総床数カテゴリ": [""],
-
-"最大Viewer同時接続数": ["",
-"30台以下",
-"31台以上60台未満",
-"60台以上"
-],
-
+"総床数カテゴリ": ["", "18床以下", "19床以上120床以下", "121床以上200床以下", "201床以上"],
+"最大Viewer同時接続数": ["", "30台以下", "31台以上60台未満", "60台以上"],
 "契約期間": ["", "月額", "1年", "5年"],
-
 "眠りSCAN eyeの有無": ["", "有", "無"],
-
 "眠りSCAN導入台数": ["", "18台以下", "19台以上"],
+"眠りSCAN購入形態": ["", "レンタル"],
 
-"眠りSCAN購入形態": ["", "購入", "レンタル"],
+"介護記録ソフト連携": ["", "CCJ（CAREKARTE）","NDソフト（ほのぼのNEXT）","ワイズマン（ワイズマンSP）","内田洋行（絆Core）","日立システムズ（福祉の森）","BOS（ブルーオーシャンノート）","EMシステムズ（すこやかサン）","富士通（HOPE LifeMark WINCARE）","東経システム（福祉見聞録）"],
 
-"介護記録ソフト連携": ["",
-"CCJ（CAREKARTE）",
-"NDソフト（ほのぼのNEXT）",
-"ワイズマン（ワイズマンSP）",
-"内田洋行（絆Core）",
-"日立システムズ（福祉の森）",
-"BOS（ブルーオーシャンノート）",
-"EMシステムズ（すこやかサン）",
-"富士通（HOPE LifeMark WINCARE）",
-"東経システム（福祉見聞録）"
-],
+"ナースコール連携": ["", "アイホン（Vi-nurse）","ケアコム（CICCS-EX）","ナカヨ（NYC-Si）","平和テクノ（Yuiコール）","名電通（ナースエコール）","ジーコム（ジーコム）","iSEED（パルモスマートコール）","ユニティー・ネットワーク（あんしんの絆）"],
 
-"ナースコール連携": ["",
-"アイホン（Vi-nurse）",
-"ケアコム（CICCS-EX）",
-"ナカヨ（NYC-Si）",
-"平和テクノ（Yuiコール）",
-"名電通（ナースエコール）",
-"ジーコム（ジーコム）",
-"iSEED（パルモスマートコール）",
-"ユニティー・ネットワーク（あんしんの絆）"
-],
+"インカム連携": ["", "CCJ（ハナスト）","BONX（BONX）","サイエンスアーツ（buddycom）","TBeye（クリアトークカム）","VOYT（VOYT CONNECT）"],
 
-"インカム連携": ["",
-"CCJ（ハナスト）",
-"BONX（BONX）",
-"サイエンスアーツ（buddycom）",
-"TBeye（クリアトークカム）",
-"VOYT（VOYT CONNECT）"
-],
+"環境センサー連携": ["", "環境センサー","環境センサー＋ドア開閉検知ユニット"],
 
-"環境センサー連携": ["",
-"環境センサー",
-"環境センサー＋ドア開閉検知ユニット"
-],
+"トイレDIARY_個室か共用か": ["", "個室用", "共用"],
+"トイレDIARY_便器ふち幅": ["", "30mm-40mm","41mm-50mm","51mm-60mm"],
+"トイレDIARY_遠距離か近距離か": ["", "遠距離","近距離"],
+"トイレDIARY_ケーブル長": ["", "2m","3.5m"],
+"トイレDIARY_介護記録ソフト連携": ["", "有","無"],
 
-"トイレDIARY_個室か共用か": ["",
-"個室用",
-"共用"
-],
+"eye_接続方式": ["", "有線","無線"],
+"eye_マウント": ["", "固定","移動式"],
+"eye_SDカード": ["", "64GB（同梱）","128GB","256GB"],
 
-"トイレDIARY_便器ふち幅": ["",
-"30mm-40mm",
-"41mm-50mm",
-"51mm-60mm"
-],
+"おむつCOLOR_パッケージ": ["", "単体使用 or 眠りSCAN4以外","眠りCONNECT連携"],
+"おむつCOLOR_セット": ["", "1日セット","夜間セット"],
 
-"トイレDIARY_遠距離か近距離か": ["",
-"遠距離",
-"近距離"
-],
-
-"トイレDIARY_ケーブル長": ["",
-"2m",
-"3.5m"
-],
-
-"トイレDIARY_介護記録ソフト連携": ["",
-"有",
-"無"
-],
-
-"eye_接続方式": ["",
-"有線",
-"無線"
-],
-
-"eye_マウント": ["",
-"固定",
-"移動式"
-],
-
-"eye_SDカード": ["",
-"64GB（同梱）",
-"128GB",
-"256GB"
-],
-
-"おむつCOLOR_パッケージ": ["",
-"単体使用 or 眠りSCAN4以外",
-"眠りCONNECT連携"
-],
-
-"おむつCOLOR_セット": ["",
-"1日セット",
-"夜間セット"
-],
-
-"その他連携": ["",
-"DFree",
-"介護Plus"
-]
+"その他連携": ["", "DFree","介護Plus"]
 };
+const fieldOrder = [
+  "施設名",
+  "販売店の有無",
+  "クラウド構成orハイブリッド構成",
 
+  "総床数カテゴリ",
+  "最大Viewer同時接続数",
+
+  "眠りSCAN導入台数",
+  "眠りSCAN購入形態",
+
+  "契約期間",
+
+  "眠りSCAN eyeの有無",
+  "eye_接続方式",
+  "eye_マウント",
+  "eye_SDカード",
+
+  "トイレDIARY_個室か共用か",
+  "トイレDIARY_便器ふち幅",
+  "トイレDIARY_遠距離か近距離か",
+  "トイレDIARY_ケーブル長",
+  "トイレDIARY_介護記録ソフト連携",
+
+  "介護記録ソフト連携",
+  "ナースコール連携",
+  "インカム連携",
+  "環境センサー連携",
+
+  "おむつCOLOR_パッケージ",
+  "おむつCOLOR_セット",
+
+  "その他連携"
+];
 
 //////////////////////////////////////////////////////
 // ② 仮JSON（抜粋）
@@ -5670,7 +5621,7 @@ const masterData = {
       "介護記録連携オプション_製品番号": "K000226532"
     }
   ],
-  "【共用】トイレDIARYマスタ ": [
+  "【共用】トイレDIARYマスタ": [
     {
       "販売店の有無": "無",
       "総床数カテゴリ": "18床以下",
@@ -11896,6 +11847,7 @@ const masterData = {
     // ←ここに全部貼る
   ]
 };
+
 //////////////////////////////////////////////////////
 // ③ ルール
 //////////////////////////////////////////////////////
@@ -11981,88 +11933,82 @@ const sheetRules = {
 //////////////////////////////////////////////////////
 // ④ フォーム生成
 //////////////////////////////////////////////////////
+
 function createForm() {
   const form = document.getElementById("form");
   let html = "";
 
-  Object.keys(fields).forEach(k => {
+  fieldOrder.forEach(k => {
 
+    html += `<div id="wrap_${k}">`;
     html += `<label>${k}</label>`;
 
-    // 施設名だけ手入力
     if (k === "施設名") {
       html += `<input id="${k}" type="text">`;
-      return;
+    } else {
+      html += `<select id="${k}">`;
+      (fields[k] || [""]).forEach(v => {
+        html += `<option value="${v}">${v || "未選択"}</option>`;
+      });
+      html += `</select>`;
     }
 
-    html += `<select id="${k}">`;
-    fields[k].forEach(v => {
-      html += `<option value="${v}">${v || "未選択"}</option>`;
-    });
-    html += `</select>`;
+    html += `</div>`;
   });
 
   form.innerHTML = html;
 }
 
 //////////////////////////////////////////////////////
-// ⑤ TEXT出力
+// 共通関数
+//////////////////////////////////////////////////////
+const normalize = v => (v || "").toString().trim();
+
+const isVisible = (id) => {
+  const el = document.getElementById("wrap_" + id);
+  return el && el.style.display !== "none";
+};
+
+//////////////////////////////////////////////////////
+// ⑤ TEXT出力（完全版）
 //////////////////////////////////////////////////////
 document.getElementById("textBtn").addEventListener("click", () => {
 
   const facilityName = document.getElementById("施設名")?.value || "（未入力）";
 
   const selected = {};
+
   Object.keys(fields).forEach(k => {
     const el = document.getElementById(k);
     if (!el) return;
-    if (el.value) selected[k] = el.value;
-  });
 
-  if (Object.keys(selected).length === 0) {
-    alert("条件を選択してください");
-    return;
-  }
+    const val = normalize(el.value);
+
+    // ★未選択は除外
+    if (!val) return;
+
+    // ★表示されてる項目だけ採用
+    if (!isVisible(k)) return;
+
+    selected[k] = val;
+  });
 
   let resultText = "";
 
   for (let sheet in masterData) {
 
-    //////////////////////////////////////
-    // ★トイレDIARY 強制フィルタ
-    //////////////////////////////////////
+    const rules = sheetRules[sheet] || [];
+    if (rules.length === 0) continue;
+
+    // ===== トイレ分岐 =====
     const type = selected["トイレDIARY_個室か共用か"];
 
     if (sheet.includes("トイレDIARY")) {
-
       if (!type) continue;
-
       if (type === "個室用" && sheet.includes("共用")) continue;
       if (type === "共用" && sheet.includes("個室")) continue;
     }
 
-    const rules = sheetRules[sheet] || [];
-
-    //////////////////////////////////////
-    // ★ルールなし排除
-    //////////////////////////////////////
-    if (!rules || rules.length === 0) continue;
-
-    //////////////////////////////////////
-    // ★必須未入力スキップ
-    //////////////////////////////////////
-    let skip = false;
-    for (let k of rules) {
-      if (!selected[k]) {
-        skip = true;
-        break;
-      }
-    }
-    if (skip) continue;
-
-    //////////////////////////////////////
-    // ★マッチ判定
-    //////////////////////////////////////
     const rows = masterData[sheet];
     let hit = null;
 
@@ -12073,9 +12019,12 @@ document.getElementById("textBtn").addEventListener("click", () => {
       for (let k of rules) {
 
         const sel = selected[k];
-        const val = row[k];
+        const val = normalize(row[k]);
 
-        if (!val || String(val).trim() !== String(sel).trim()) {
+        // ★未入力 or 非表示は無視
+        if (!sel) continue;
+
+        if (val !== sel) {
           ok = false;
           break;
         }
@@ -12087,19 +12036,14 @@ document.getElementById("textBtn").addEventListener("click", () => {
       }
     }
 
-    //////////////////////////////////////
-    // 出力整形
-    //////////////////////////////////////
     resultText += "--------------------------------------\n";
     resultText += sheet + "\n\n";
 
     if (hit) {
-
       Object.keys(hit).forEach(k => {
         if (fields[k]) return;
         resultText += k + "\n" + hit[k] + "\n\n";
       });
-
     } else {
       resultText += "該当なし\n\n";
     }
@@ -12129,205 +12073,128 @@ ${resultText}
   document.getElementById("outputText").value = text;
 });
 
+
 //////////////////////////////////////////////////////
 // ⑥ コピー
 //////////////////////////////////////////////////////
 function copyText() {
-  const text = document.getElementById("outputText").value;
-  navigator.clipboard.writeText(text);
+  navigator.clipboard.writeText(
+    document.getElementById("outputText").value
+  );
 }
 
 //////////////////////////////////////////////////////
-// ⑦ イベント（ここが重要）
+// ⑦ UI制御（完全版）
 //////////////////////////////////////////////////////
 function setupEvents() {
 
-  //////////////////////////////////////
-  // ① 既存：構成 → 床数制御
-  //////////////////////////////////////
   const config = document.getElementById("クラウド構成orハイブリッド構成");
-  const bed = document.getElementById("総床数カテゴリ");
-
-  config.addEventListener("change", function () {
-
-    let val = this.value;
-    let options = [""];
-
-    if (val === "ハイブリッド構成") {
-      options = ["","18床以下","19床以上120床以下","121床以上200床以下","201床以上"];
-    }
-
-    if (val === "クラウド構成") {
-      options = ["","18床以下","19床以上"];
-    }
-
-    bed.innerHTML = options
-      .map(v => `<option value="${v}">${v || "未選択"}</option>`)
-      .join("");
-  });
-
-  //////////////////////////////////////
-  // ② 既存：eye制御
-  //////////////////////////////////////
   const eye = document.getElementById("眠りSCAN eyeの有無");
-  const eyeItems = ["eye_接続方式","eye_マウント","eye_SDカード"];
+  const toilet = document.getElementById("トイレDIARY_個室か共用か");
 
-  eye.addEventListener("change", function () {
+  function show(id){ document.getElementById("wrap_" + id).style.display="block"; }
+  function hide(id){ document.getElementById("wrap_" + id).style.display="none"; }
 
-    const on = this.value === "有";
-
-    eyeItems.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-
-      el.disabled = !on;
-      if (!on) el.value = "";
-    });
-  });
-
-  //////////////////////////////////////
-  // ③ トイレDIARY制御（修正版）
-  //////////////////////////////////////
-  const toiletType = document.getElementById("トイレDIARY_個室か共用か");
-
-  const commonItems = [
-    "トイレDIARY_遠距離か近距離か",
-    "トイレDIARY_ケーブル長"
+  const hideAll = [
+    "総床数カテゴリ","最大Viewer同時接続数",
+    "眠りSCAN導入台数","眠りSCAN購入形態",
+    "eye_接続方式","eye_マウント","eye_SDカード",
+    "トイレDIARY_便器ふち幅","トイレDIARY_遠距離か近距離か",
+    "トイレDIARY_ケーブル長","トイレDIARY_介護記録ソフト連携"
   ];
 
-  const careItem = "トイレDIARY_介護記録ソフト連携";
+  hideAll.forEach(hide);
 
-  toiletType.addEventListener("change", function () {
+  config.addEventListener("change", function(){
+    hideAll.forEach(hide);
 
-    const val = this.value;
-
-    // 一旦すべてON
-    [...commonItems, careItem].forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.disabled = false;
-    });
-
-    if (val === "共用") {
-      // 共用 → 介護連携だけOFF
-      const el = document.getElementById(careItem);
-      if (el) {
-        el.disabled = true;
-        el.value = "";
-      }
+    if (this.value === "ハイブリッド構成") {
+      show("総床数カテゴリ");
+      show("最大Viewer同時接続数");
     }
 
-    if (val === "個室用") {
-      // 個室 → 遠距離・ケーブルだけOFF（←ここ修正ポイント）
-      commonItems.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.disabled = true;
-        el.value = "";
-      });
-
-      // ★介護連携はONのまま（←重要）
+    if (this.value === "クラウド構成") {
+      show("眠りSCAN導入台数");
+      show("眠りSCAN購入形態");
     }
-
   });
 
-  //////////////////////////////////////
-  // ④ 初期反映
-  //////////////////////////////////////
-  config.dispatchEvent(new Event("change"));
-  eye.dispatchEvent(new Event("change"));
-  toiletType.dispatchEvent(new Event("change"));
-}
+  eye.addEventListener("change", function(){
+    const on = this.value === "有";
+    ["eye_接続方式","eye_マウント","eye_SDカード"]
+      .forEach(id => on ? show(id) : hide(id));
+  });
 
+toilet.addEventListener("change", function(){
 
-//////////////////////////////////////////////////////
-// ⑧ マスタ選択（安定版）
-//////////////////////////////////////////////////////
-function selectBestMaster(selected) {
+  // 全部隠す（初期化）
+  hide("トイレDIARY_便器ふち幅");
+  hide("トイレDIARY_遠距離か近距離か");
+  hide("トイレDIARY_ケーブル長");
+  hide("トイレDIARY_介護記録ソフト連携");
 
-  for (let sheet in masterData) {
+  // ★未選択なら何も出さない
+  if (!this.value) return;
 
-    const rows = masterData[sheet];
-
-    const hit = rows.find(row => {
-
-      for (let k in selected) {
-
-        if (!row[k]) return false;
-
-        if (String(row[k]).trim() !== String(selected[k]).trim()) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    if (hit) {
-      return { sheet, row: hit };
-    }
+  // ===== 個室 =====
+  if (this.value === "個室用") {
+    show("トイレDIARY_便器ふち幅");
+    show("トイレDIARY_介護記録ソフト連携");
   }
 
-  return null;
+  // ===== 共用 =====
+  if (this.value === "共用") {
+    show("トイレDIARY_便器ふち幅");
+    show("トイレDIARY_遠距離か近距離か");
+    show("トイレDIARY_ケーブル長");
+    show("トイレDIARY_介護記録ソフト連携");
+  }
+});
+
+  config.dispatchEvent(new Event("change"));
+  eye.dispatchEvent(new Event("change"));
+  toilet.dispatchEvent(new Event("change"));
 }
 
+
 //////////////////////////////////////////////////////
-// ⑨ 検索
+// ⑨ 検索（完全版）
 //////////////////////////////////////////////////////
 function search() {
 
   const selected = {};
 
   Object.keys(fields).forEach(k => {
-    const v = document.getElementById(k).value;
-    if (v) selected[k] = v;
-  });
+    const el = document.getElementById(k);
+    if (!el) return;
 
-  // ★未入力ガード
-  if (Object.keys(selected).length === 0) {
-    alert("条件を選択してください");
-    return;
-  }
+    const val = normalize(el.value);
+
+    // ★未選択は除外
+    if (!val) return;
+
+    // ★表示されてる項目だけ採用
+    if (!isVisible(k)) return;
+
+    selected[k] = val;
+  });
 
   let html = "";
 
   for (let sheet in masterData) {
 
-    //////////////////////////////////////
-    // ★トイレDIARY 強制フィルタ（最重要）
-    //////////////////////////////////////
+    const rules = sheetRules[sheet] || [];
+    if (rules.length === 0) continue;
+
+    // ===== トイレ分岐 =====
     const type = selected["トイレDIARY_個室か共用か"];
 
     if (sheet.includes("トイレDIARY")) {
-
       if (!type) continue;
-
       if (type === "個室用" && sheet.includes("共用")) continue;
       if (type === "共用" && sheet.includes("個室")) continue;
     }
 
-    const rules = sheetRules[sheet] || [];
-
-    //////////////////////////////////////
-    // ★ルールなしマスタ排除
-    //////////////////////////////////////
-    if (!rules || rules.length === 0) continue;
-
-    //////////////////////////////////////
-    // ★必須未入力スキップ
-    //////////////////////////////////////
-    let skip = false;
-    for (let k of rules) {
-      if (!selected[k]) {
-        skip = true;
-        break;
-      }
-    }
-    if (skip) continue;
-
-    //////////////////////////////////////
-    // ★マッチ判定
-    //////////////////////////////////////
     const rows = masterData[sheet];
 
     let hit = null;
@@ -12341,17 +12208,14 @@ function search() {
       for (let k of rules) {
 
         const sel = selected[k];
-        const val = row[k];
+        const val = normalize(row[k]);
 
-        if (!val) {
-          ok = false;
-          reasons.push(`${k} がマスタ未定義`);
-          continue;
-        }
+        if (!sel) continue;
 
-        if (String(val).trim() !== String(sel).trim()) {
+        if (val !== sel) {
           ok = false;
-          reasons.push(`${k} が不一致`);
+          reasons.push(`${k}: [${sel}] ≠ [${val}]`);
+          break;
         }
       }
 
@@ -12361,9 +12225,6 @@ function search() {
       }
     }
 
-    //////////////////////////////////////
-    // 表示
-    //////////////////////////////////////
     html += `<div class="card">`;
     html += `<b>${sheet}</b><br><br>`;
 
@@ -12376,10 +12237,9 @@ function search() {
     } else {
 
       html += `<span class="warn">該当なし</span><br><br>`;
-      html += `<b>原因：</b><br>`;
 
       if (reasons.length === 0) {
-        html += "条件不足<br>";
+        html += "条件不足（未選択 or 非表示）<br>";
       } else {
         reasons.forEach(r => html += `・${r}<br>`);
       }
@@ -12391,12 +12251,13 @@ function search() {
   document.getElementById("result").innerHTML = html;
 }
 
+
 //////////////////////////////////////////////////////
-// ⑪ 初期化（重要）
+// 初期化
 //////////////////////////////////////////////////////
-window.onload = function () {
+window.onload = () => {
   createForm();
-  setupEvents(); // ←これ必須
+  setupEvents();
 };
 
 </script>
