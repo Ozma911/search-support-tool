@@ -2,33 +2,42 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>検索サポートツール（完成版）</title>
+<title>検索サポートツール（フル版）</title>
 
 <style>
-body { font-family: Arial; padding: 10px; }
+body { font-family: Arial; padding: 10px; max-width: 900px; margin:auto;}
 label { display:block; margin-top:10px; font-weight:bold; }
 select, input { width:100%; padding:6px; }
-button { margin-top:15px; padding:10px; width:100%; }
-.card { border:1px solid #ccc; padding:10px; margin-bottom:10px; }
+button { margin-top:10px; padding:10px; width:100%; }
+.card { border:1px solid #ccc; padding:10px; margin-bottom:10px; border-radius:8px;}
 .warn { color:red; font-weight:bold; }
+
+@media (max-width: 600px){
+  select, input { font-size:16px; padding:12px; }
+  button { font-size:16px; padding:14px; }
+  .card { font-size:13px; word-break: break-all; }
+  textarea { width:100%; height:200px;}
+}
 </style>
+
 </head>
 
 <body>
 
-<h2>検索サポートツール</h2>
+<h2>検索サポートツール（フル版）</h2>
 
 <div id="form"></div>
 <button onclick="search()">検索</button>
 
 <button id="textBtn">TEXT出力</button>
-<textarea id="outputText" rows="12"></textarea>
+
+<textarea id="outputText"></textarea>
+
 <button onclick="copyText()">コピー</button>
 
 <div id="result"></div>
 
 <script>
-
 
 //////////////////////////////////////////////////////
 // ① フォーム定義
@@ -12010,14 +12019,37 @@ document.getElementById("textBtn").addEventListener("click", () => {
     if (el.value) selected[k] = el.value;
   });
 
+  if (Object.keys(selected).length === 0) {
+    alert("条件を選択してください");
+    return;
+  }
+
   let resultText = "";
 
   for (let sheet in masterData) {
 
+    //////////////////////////////////////
+    // ★トイレDIARY 強制フィルタ
+    //////////////////////////////////////
+    const type = selected["トイレDIARY_個室か共用か"];
+
+    if (sheet.includes("トイレDIARY")) {
+
+      if (!type) continue;
+
+      if (type === "個室用" && sheet.includes("共用")) continue;
+      if (type === "共用" && sheet.includes("個室")) continue;
+    }
+
     const rules = sheetRules[sheet] || [];
 
     //////////////////////////////////////
-    // ★ 必須未入力ならスキップ
+    // ★ルールなし排除
+    //////////////////////////////////////
+    if (!rules || rules.length === 0) continue;
+
+    //////////////////////////////////////
+    // ★必須未入力スキップ
     //////////////////////////////////////
     let skip = false;
     for (let k of rules) {
@@ -12029,7 +12061,7 @@ document.getElementById("textBtn").addEventListener("click", () => {
     if (skip) continue;
 
     //////////////////////////////////////
-    // ★ マッチ判定（searchと完全一致）
+    // ★マッチ判定
     //////////////////////////////////////
     const rows = masterData[sheet];
     let hit = null;
@@ -12064,7 +12096,7 @@ document.getElementById("textBtn").addEventListener("click", () => {
     if (hit) {
 
       Object.keys(hit).forEach(k => {
-        if (fields[k]) return; // 条件除外
+        if (fields[k]) return;
         resultText += k + "\n" + hit[k] + "\n\n";
       });
 
@@ -12096,7 +12128,6 @@ ${resultText}
 
   document.getElementById("outputText").value = text;
 });
-
 
 //////////////////////////////////////////////////////
 // ⑥ コピー
@@ -12252,14 +12283,38 @@ function search() {
     if (v) selected[k] = v;
   });
 
+  // ★未入力ガード
+  if (Object.keys(selected).length === 0) {
+    alert("条件を選択してください");
+    return;
+  }
+
   let html = "";
 
   for (let sheet in masterData) {
 
+    //////////////////////////////////////
+    // ★トイレDIARY 強制フィルタ（最重要）
+    //////////////////////////////////////
+    const type = selected["トイレDIARY_個室か共用か"];
+
+    if (sheet.includes("トイレDIARY")) {
+
+      if (!type) continue;
+
+      if (type === "個室用" && sheet.includes("共用")) continue;
+      if (type === "共用" && sheet.includes("個室")) continue;
+    }
+
     const rules = sheetRules[sheet] || [];
 
     //////////////////////////////////////
-    // ★ 必須未入力ならスキップ
+    // ★ルールなしマスタ排除
+    //////////////////////////////////////
+    if (!rules || rules.length === 0) continue;
+
+    //////////////////////////////////////
+    // ★必須未入力スキップ
     //////////////////////////////////////
     let skip = false;
     for (let k of rules) {
@@ -12271,7 +12326,7 @@ function search() {
     if (skip) continue;
 
     //////////////////////////////////////
-    // ★ マッチ判定
+    // ★マッチ判定
     //////////////////////////////////////
     const rows = masterData[sheet];
 
